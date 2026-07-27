@@ -16,7 +16,7 @@ The notebook is self-contained — it creates its own synthetic traces, evaluate
 |---|---|---|
 | `tool_existence_check` | Custom (`@scorer`) | Deterministic (set membership check) |
 
-This notebook introduces `@scorer` — MLflow's decorator for building deterministic custom scorers.
+This notebook demonstrates the first pure deterministic `@scorer` — no LLM involved. The `@scorer` decorator was introduced in [FM06 (Hallucinated Completion)](../06_hallucinated_completion/06_hallucinated_completion.ipynb), where it wraps an LLM judge; here it's used for a simple set membership check.
 
 ## Documentation
 

@@ -14,9 +14,9 @@ A hallucinated tool call means the agent is operating outside its defined capabi
 
 A travel booking agent with flight-related tools (`search_flights`, `get_flight_details`, `book_flight`, `search_and_book`, `verify_booking`, `cancel_booking`).
 
-**Failing trace (single):** User asks to book a flight. Agent calls `check_passport("USR-12345")` — a tool that doesn't exist in its tool set — before calling `search_and_book` (which does exist). The agent hallucinated a passport checking tool.
+**Failing trace (single):** User asks to book a flight. Agent calls `check_passport("USR-12345")` — a tool that doesn't exist in its tool set — before calling `search_and_book` (which does exist). The agent hallucinated a passport-checking tool. The agent should have skipped the passport check entirely and proceeded directly with `search_and_book`.
 
-**Failing trace (multiple):** User asks to book a flight and arrange airport transfer. Agent calls `search_and_book` (exists), then `book_transfer` and `arrange_pickup` — neither exists in its tool set. The scorer catches both hallucinated tools in one pass.
+**Failing trace (multiple):** User asks to book a flight and arrange airport transfer. Agent calls `search_and_book` (exists), then `book_transfer` and `arrange_pickup` — neither exists in its tool set. The scorer catches both hallucinated tools in one pass. The agent should have completed only the flight booking using its available tools and informed the user that airport transfer is outside its capabilities.
 
 **Passing trace:** User asks to book a flight. Agent calls only `search_and_book` — a tool that exists in its set.
 
@@ -56,6 +56,12 @@ Tool existence is a set membership check — `@scorer` is the right choice. Comp
 | Scorer | Type | What it checks | Deterministic? | Needs expectations? |
 |---|---|---|---|---|
 | Custom `@scorer` | Deterministic | `called_tools ⊆ available_tools` | Yes | No |
+
+## Limitations
+
+- **Name-only matching:** The scorer checks tool names, not whether the agent used the tool correctly. An agent that calls a valid tool with completely wrong arguments will pass this check — use Tool Misuse (FM01) to catch that.
+- **Requires `mlflow.chat.tools` attribute:** The scorer reads the available tools list from the agent span. If the agent framework doesn't populate this attribute, the scorer can't determine what tools are available.
+- **No alias handling:** If the agent calls a tool by a different name or alias (e.g., `flight_search` instead of `search_flights`), the scorer treats it as hallucinated even if the intent maps to a valid tool.
 
 ## Notebook
 
