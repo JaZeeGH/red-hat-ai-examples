@@ -27,7 +27,7 @@ Agents fail in ways that are specific to their tool-using, decision-making natur
 - Calling the wrong tool for the task (tool misuse)
 - Giving a partial answer that omits key information (goal achievement)
 - Making redundant or unnecessary tool calls (excessive steps)
-- Exposing sensitive data like names or SSNs in its response (PII leakage)
+- Exposing sensitive data like names or SSNs in its response, when the agent isn't intended to disclose PII (PII leakage)
 - Saying "your flight is booked!" when the booking tool actually failed (hallucinated completion)
 - Attempting a task it has no tools for, or refusing one it can handle (graceful refusal)
 
@@ -132,6 +132,7 @@ Each failure mode has its own self-contained notebook that creates traces, evalu
 | 5 | [Graceful Refusal](failure-modes/05_graceful_refusal/) | Custom `make_judge()` | [05_graceful_refusal.ipynb](failure-modes/05_graceful_refusal/05_graceful_refusal.ipynb) |
 | 6 | [Hallucinated Completion](failure-modes/06_hallucinated_completion/) | Custom `@scorer` wrapping `is_grounded()` | [06_hallucinated_completion.ipynb](failure-modes/06_hallucinated_completion/06_hallucinated_completion.ipynb) |
 | 7 | [Repeated Action Loop](failure-modes/07_repeated_action_loop/) | Custom `@scorer` (MLflow), custom `make_judge()` (MLflow) | [07_repeated_action_loop.ipynb](failure-modes/07_repeated_action_loop/07_repeated_action_loop.ipynb) |
+| 8 | [Hallucinated Tool Call](failure-modes/08_hallucinated_tool_call/) | Custom `@scorer` (deterministic) | [08_hallucinated_tool_call.ipynb](failure-modes/08_hallucinated_tool_call/08_hallucinated_tool_call.ipynb) |
 
 ## Project Structure
 
@@ -149,6 +150,7 @@ agentic-evaluation/
     05_graceful_refusal/ — notebook + docs + README
     06_hallucinated_completion/ — notebook + docs + README
     07_repeated_action_loop/ — notebook + docs + README
+    08_hallucinated_tool_call/ — notebook + docs + README
 ```
 
 `tools.py` contains the tool definitions (function name, description, parameters) used by the simulated agents in the notebooks. Each failure mode imports the tools it needs. You don't need to modify this file unless you're adding new failure modes.
