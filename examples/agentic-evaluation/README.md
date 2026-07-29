@@ -12,7 +12,7 @@ But if the agent is doing all of this on its own, how do you know it's doing it 
 
 Evaluating an LLM on its own is about measuring response quality — metrics like perplexity, BLEU, ROUGE, or human preference scores tell you how good the output text is. But once that LLM is wrapped in an agent, the response is only one piece of the puzzle. The agent also selects tools, passes arguments, interprets results, and decides what to do next. A correct final response doesn't mean the agent took the right path to get there — and a plausible-looking response can hide serious mistakes made along the way.
 
-To evaluate what happened along the way, you need to see it. This is where MLflow tracing comes in.
+To evaluate what happened along the way, you need to see what the agent did throughout the lifecycle of a request. This is where MLflow tracing comes in.
 
 ### Traces — capturing the workflow
 
@@ -31,7 +31,7 @@ Agents fail in ways that are specific to their tool-using, decision-making natur
 - Saying "your flight is booked!" when the booking tool actually failed (hallucinated completion)
 - Attempting a task it has no tools for, or refusing one it can handle (graceful refusal)
 
-Some failure modes are universal — any agent can leak PII or hallucinate a response regardless of its domain. Others are domain-specific — a medical agent giving a partial diagnosis is a critical failure, while a weather agent omitting humidity is a minor inconvenience. Same failure mode, different severity depending on the use case.
+Some failure modes are universal — any agent that has access to personal information can leak PII or hallucinate a response regardless of its domain. Others are domain-specific — a medical agent giving a partial diagnosis is a critical failure, while a weather agent omitting humidity is a minor inconvenience. Same failure mode, different severity depending on the use case.
 
 Detecting these failure modes manually by reading traces doesn't scale. You need automated checks — this is what MLflow scorers provide.
 
@@ -108,8 +108,10 @@ Edit `.env` and set the API key environment variable according to your model pro
 | Provider | API key env var | Model parameter example |
 |---|---|---|
 | OpenAI | `OPENAI_API_KEY` | `model="openai:/gpt-4o"` |
-| Anthropic | `ANTHROPIC_API_KEY` | `model="anthropic:/claude-sonnet-5"` |
+| Anthropic | `ANTHROPIC_API_KEY` | `model="anthropic:/claude-sonnet-4"` |
 | Google | `GOOGLE_API_KEY` | `model="google:/gemini-2.0-flash"` |
+| AWS Bedrock | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `model="bedrock:/anthropic.claude-sonnet-4"` |
+| xAI | `XAI_API_KEY` | `model="xai:/grok-2-latest"` |
 
 ### 4. Start an MLflow server
 
@@ -134,6 +136,46 @@ Each failure mode has its own self-contained notebook that creates traces, evalu
 | 7 | [Repeated Action Loop](failure-modes/07_repeated_action_loop/) | Custom `@scorer` (MLflow), custom `make_judge()` (MLflow) | [07_repeated_action_loop.ipynb](failure-modes/07_repeated_action_loop/07_repeated_action_loop.ipynb) |
 | 8 | [Hallucinated Tool Call](failure-modes/08_hallucinated_tool_call/) | Custom `@scorer` (deterministic) | [08_hallucinated_tool_call.ipynb](failure-modes/08_hallucinated_tool_call/08_hallucinated_tool_call.ipynb) |
 | 9 | [Verification Skipped](failure-modes/09_verification_skipped/) | Custom `make_judge()` | [09_verification_skipped.ipynb](failure-modes/09_verification_skipped/09_verification_skipped.ipynb) |
+
+## Cost-effective evaluation strategy
+
+Not all scorers cost the same to run. Structure your evaluation as two tiers — cheap deterministic checks on everything, then LLM judges only where the deterministic checks didn't find issues.
+
+### Tier 1 — Deterministic scorers (run on all traces)
+
+No LLM calls, no API cost, milliseconds per trace. Run these on every trace as your first line of defense.
+
+| Scorer | Failure Mode |
+|---|---|
+| `DetectPII` | PII Leakage |
+| `tool_existence_check` | Hallucinated Tool Call |
+| `repeated_action_loop` | Repeated Action Loop |
+| `ToolCallCorrectness(should_exact_match=True)` | Tool Misuse (requires `expected_tool_calls`) |
+
+### Tier 2 — LLM judges (run on a sampled subset)
+
+Each trace costs one or more LLM calls. Run these on a representative sample to control cost.
+
+| Scorer | Failure Mode |
+|---|---|
+| `PIILeakage` | PII Leakage |
+| `semantic_loop_check` | Repeated Action Loop |
+| `ToolCallCorrectness` | Tool Misuse |
+| `ToolCallEfficiency` | Excessive Steps |
+| `Correctness` | Goal Achievement |
+| `graceful_refusal` | Graceful Refusal |
+| `grounded_in_tools` | Hallucinated Completion |
+| `verification_check` | Verification Skipped |
+
+### In practice
+
+1. **Run Tier 1 on 100% of traces** — fast, free, catches obvious failures.
+2. **For failure modes covered by both tiers** (PII Leakage, Repeated Action Loop, Tool Misuse): if Tier 1 finds failures, the capability gap is already identified — skip the corresponding LLM judge entirely and focus on fixing the agent. Only run the LLM judge if Tier 1 passed clean, to check for subtler issues the deterministic check can't catch.
+3. **For failure modes with no Tier 1 scorer** (Excessive Steps, Goal Achievement, Graceful Refusal, Hallucinated Completion, Verification Skipped): run the LLM judge on a sampled subset.
+
+### Why this is cost-effective
+
+The goal is to identify whether the agent has a capability gap — not to find every instance of failure. If `DetectPII` catches PII leakage, the answer is clear: the agent has a PII leakage problem. Running `PIILeakage` to find more instances doesn't change the diagnosis — fix the agent first, then re-evaluate. LLM judges only add value when deterministic checks pass clean, because then you're asking: "the obvious patterns look good, but are there subtler issues?"
 
 ## Project Structure
 
