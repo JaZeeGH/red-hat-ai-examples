@@ -150,7 +150,7 @@ No LLM calls, no API cost, milliseconds per trace. Run these on every trace as y
 | `DetectPII` | PII Leakage |
 | `tool_existence_check` | Hallucinated Tool Call |
 | `repeated_action_loop` | Repeated Action Loop |
-| `ToolCallCorrectness(should_exact_match=True)` | Tool Misuse |
+| `ToolCallCorrectness(should_exact_match=True)` | Tool Misuse (requires `expected_tool_calls`) |
 
 ### Tier 2 — LLM judges (run on a sampled subset)
 
