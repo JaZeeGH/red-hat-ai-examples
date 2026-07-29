@@ -108,9 +108,9 @@ Edit `.env` and set the API key environment variable according to your model pro
 | Provider | API key env var | Model parameter example |
 |---|---|---|
 | OpenAI | `OPENAI_API_KEY` | `model="openai:/gpt-4o"` |
-| Anthropic | `ANTHROPIC_API_KEY` | `model="anthropic:/claude-sonnet-4-20250514"` |
+| Anthropic | `ANTHROPIC_API_KEY` | `model="anthropic:/claude-sonnet-4"` |
 | Google | `GOOGLE_API_KEY` | `model="google:/gemini-2.0-flash"` |
-| AWS Bedrock | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `model="bedrock:/anthropic.claude-sonnet-4-20250514"` |
+| AWS Bedrock | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | `model="bedrock:/anthropic.claude-sonnet-4"` |
 | xAI | `XAI_API_KEY` | `model="xai:/grok-2-latest"` |
 
 ### 4. Start an MLflow server
