@@ -13,7 +13,7 @@ def print_eval_results(results, scorer_name, eval_experiment_id):
         return
 
     eval_traces = mlflow.search_traces(
-        experiment_ids=[eval_experiment_id],
+        locations=[eval_experiment_id],
         filter_string=f"metadata.`mlflow.sourceRun` = '{results.run_id}'",
         return_type="list",
     )
