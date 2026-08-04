@@ -15,7 +15,7 @@ Use the **MLflow tracing** image variant (`Containerfile.mlflow`) to enable trac
 
 Skills are located under `skills/`. Each skill is a subdirectory containing a single `SKILL.md` file, which OpenCode discovers and makes available via the `/skill` command.
 
-```
+```text
 skills/
 ├── python-file-review/
 │   └── SKILL.md        # Code quality review for Python source files
@@ -84,11 +84,13 @@ Reviews a Python source file for code quality issues and writes a structured mar
 **Input:** Absolute path to a Python file inside the pod workspace.
 
 **Example:**
-```
+
+```text
 /skill python-file-review /opt/app-root/workspace/input-files/my_module.py
 ```
 
 **Steps the agent performs:**
+
 1. Reads the file
 2. Runs `ruff check <file> --output-format=text` (skips gracefully if ruff is unavailable)
 3. Analyzes for missing docstrings, complexity, potential bugs, and dead code
@@ -98,7 +100,8 @@ Reviews a Python source file for code quality issues and writes a structured mar
 **Output:** `/opt/app-root/workspace/reviews/<basename>-review.md`
 
 **Report structure:**
-```
+
+```text
 # Code Review: <filename>
 ## Summary
 ## Issues
@@ -108,13 +111,15 @@ Reviews a Python source file for code quality issues and writes a structured mar
 ```
 
 **Workspace files created:**
-```
+
+```text
 /opt/app-root/workspace/
 └── reviews/
     └── <basename>-review.md
 ```
 
 **Caveats:**
+
 - `ruff` is not pre-installed in the base OpenCode image. The agent handles this gracefully but the Ruff output section will always read "not available" unless ruff is added to the image.
 - Input files must be present inside the pod workspace before invoking the skill. Copy them in with `oc cp` or place them directly on the PVC.
 
@@ -129,7 +134,8 @@ Fetches a pull request from a local clone of `agentic-starter-kits` and writes a
 **Input:** A pull request number from the `red-hat-data-services/agentic-starter-kits` repository.
 
 **Example:**
-```
+
+```text
 /skill pr-summarizer 178
 ```
 
@@ -144,6 +150,7 @@ oc exec -n <namespace> deployment/opencode-web -c opencode-web -- \
 The clone is stored on the workspace PVC and persists across pod restarts. Do not re-clone on each run.
 
 **Steps the agent performs:**
+
 1. Fetches the PR ref: `git fetch origin refs/pull/<N>/head:pr/<N>`
 2. Gets the commit list: `git log main..pr/<N> --oneline`
 3. Gets the full diff: `git diff main...pr/<N>`
@@ -155,7 +162,8 @@ The clone is stored on the workspace PVC and persists across pod restarts. Do no
 **Output:** `/opt/app-root/workspace/pr-summaries/pr-<NUMBER>-summary.md`
 
 **Report structure:**
-```
+
+```text
 # PR #<NUMBER>: <title>
 ## Summary
 ## Changed files
@@ -165,7 +173,8 @@ The clone is stored on the workspace PVC and persists across pod restarts. Do no
 ```
 
 **Workspace files created:**
-```
+
+```text
 /opt/app-root/workspace/
 ├── repos/
 │   └── agentic-starter-kits/   ← one-time clone, persists on PVC
@@ -174,6 +183,7 @@ The clone is stored on the workspace PVC and persists across pod restarts. Do no
 ```
 
 **Caveats:**
+
 - **Hardcoded repository:** The skill is hardcoded to use the local clone at `/opt/app-root/workspace/repos/agentic-starter-kits`. To use a different repository, update the path in `SKILL.md` and clone accordingly.
 - **Full history required:** The clone must not be shallow (`--depth`). A shallow clone causes `git log main..pr/<N>` to return incorrect commit counts because the merge base is outside the truncated history. If you cloned with `--depth`, run `git fetch --unshallow` inside the pod.
 - **Internet access required at fetch time:** The skill runs `git fetch` to retrieve the PR ref at invocation time. The pod must have outbound HTTPS access to `github.com`.
@@ -185,7 +195,7 @@ The clone is stored on the workspace PVC and persists across pod restarts. Do no
 
 After running both skills, the workspace PVC contains:
 
-```
+```text
 /opt/app-root/workspace/
 ├── input-files/                     ← Python files to review (copy in manually)
 │   └── *.py
@@ -204,7 +214,7 @@ Each skill invocation (one `opencode` session) produces one MLflow trace. Traces
 Key span types in traces:
 
 | Span | Description |
-|---|---|
+| --- | --- |
 | `opencode_conversation` | Root span; `inputs.prompt` is the `/skill` command |
 | `llm_call` | One LLM inference turn |
 | `tool_read` | File read |

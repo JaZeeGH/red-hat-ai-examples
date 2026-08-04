@@ -11,7 +11,8 @@ write a structured PR description that a reviewer or author could use directly.
 ## Setup assumption
 
 The repository is already cloned at:
-```
+
+```text
 /opt/app-root/workspace/repos/agentic-starter-kits
 ```
 
@@ -22,24 +23,29 @@ Do not clone it. If it is missing, report the error and stop.
 You will be given a pull request number. Follow these steps in order:
 
 1. **Fetch the PR ref** — run:
-   ```
+
+   ```bash
    git -C /opt/app-root/workspace/repos/agentic-starter-kits fetch origin refs/pull/<PR_NUMBER>/head:pr/<PR_NUMBER>
    ```
 
 2. **Get the commit list** — run:
-   ```
+
+   ```bash
    git -C /opt/app-root/workspace/repos/agentic-starter-kits log main..pr/<PR_NUMBER> --oneline
    ```
 
 3. **Get the full diff** — run:
-   ```
+
+   ```bash
    git -C /opt/app-root/workspace/repos/agentic-starter-kits diff main...pr/<PR_NUMBER>
    ```
+
    If the diff is very large (more than 500 lines), summarize by file rather than
    reading every line.
 
 4. **Get the changed file list with stats** — run:
-   ```
+
+   ```bash
    git -C /opt/app-root/workspace/repos/agentic-starter-kits diff --stat main...pr/<PR_NUMBER>
    ```
 
@@ -52,9 +58,11 @@ You will be given a pull request number. Follow these steps in order:
    - **Test coverage** — are new code paths tested? Are there gaps?
 
 6. **Write the PR description** to:
-   ```
+
+   ```text
    /opt/app-root/workspace/pr-summaries/pr-<PR_NUMBER>-summary.md
    ```
+
    Create the directory if it does not exist.
 
 7. **Confirm** by reading back the first few lines of the written file, then
@@ -62,7 +70,7 @@ You will be given a pull request number. Follow these steps in order:
 
 ## Output format
 
-```
+```text
 # PR #<NUMBER>: <inferred title from commits>
 
 ## Summary

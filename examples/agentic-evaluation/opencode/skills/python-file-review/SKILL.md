@@ -41,7 +41,7 @@ You will be given a path to a Python file. Follow these steps in order:
 
 The report must follow this structure:
 
-```
+```text
 # Code Review: <filename>
 
 ## Summary
