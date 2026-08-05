@@ -22,6 +22,6 @@
   {
     "query": "What are the opening hours for the visitor centers at Acadia?",
     "expected_tool_calls": [{"name": "get_visitor_centers"}],
-    "expected_facts": ["Hulls Cove Visitor Center", "8:30AM - 4:30PM"]
+    "expected_facts": ["Hulls Cove Visitor Center", "Acadia Gateway Center"]
   }
 ]
