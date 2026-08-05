@@ -52,10 +52,12 @@ Custom scorers are defined in [`scorers.py`](scorers.py). Built-in scorers come 
 
 1. Complete the [project setup](../README.md#setup) (dependencies, API keys, MLflow server)
 
-2. **NPS API key** (free) — register at https://www.nps.gov/subjects/developer/get-started.htm and add to `.env`:
+2. **NPS API key** (free) — register at <https://www.nps.gov/subjects/developer/get-started.htm> and add to `.env`:
+
    ```ini
    NPS_API_KEY=your-nps-api-key
    ```
+
    If not set, the notebook falls back to `DEMO_KEY` which has stricter rate limits.
 
 3. **`MLFLOW_GENAI_EVAL_MAX_WORKERS=1`** must be set in `.env` (already included in `.env.example`). Required because the `pii_check` scorer uses Guardrails AI's `DetectPII`, which has threading conflicts with MLflow's parallel evaluation pipeline. The tradeoff is sequential scorer execution — slower for large trace sets, but necessary for compatibility.
