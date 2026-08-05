@@ -18,21 +18,23 @@ Skills are located under `skills/`. Each skill is a subdirectory containing a si
 ```text
 skills/
 ├── python-file-review/
-│   └── SKILL.md        # Code quality review for Python source files
+│   └── skill.md        # Code quality review for Python source files
 └── pr-summarizer/
-    └── SKILL.md        # Structured PR description from git diff
+    └── skill.md        # Structured PR description from git diff
 ```
 
 ### Mounting skills in the pod
 
 Skills are mounted via a Kubernetes ConfigMap. Each key in the ConfigMap corresponds to one skill file, and the volume `items` mapping remaps each flat key to the `<skill-name>/SKILL.md` path that OpenCode requires for skill discovery.
 
+> **Note:** Skill files are named `skill.md` (lowercase) in this repository. The ConfigMap `items` mapping renames each file to `SKILL.md` when mounting into the pod, which is the filename OpenCode's skill loader expects.
+
 Example ConfigMap creation:
 
 ```bash
 oc create configmap opencode-web-skills \
-  --from-file=python-file-review.md=skills/python-file-review/SKILL.md \
-  --from-file=pr-summarizer.md=skills/pr-summarizer/SKILL.md \
+  --from-file=python-file-review.md=skills/python-file-review/skill.md \
+  --from-file=pr-summarizer.md=skills/pr-summarizer/skill.md \
   -n <namespace> \
   --dry-run=client -o yaml | oc apply -f -
 ```
