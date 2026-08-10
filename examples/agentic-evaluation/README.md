@@ -147,6 +147,7 @@ If you have access to a Red Hat OpenShift AI cluster with MLflow enabled:
    ```ini
    MLFLOW_TRACKING_URI=https://<your-rhoai-mlflow-route>/mlflow/
    MLFLOW_TRACKING_TOKEN=<your-openshift-token>
+   # Skip TLS verification (development only — set to false in production)
    MLFLOW_TRACKING_INSECURE_TLS=true
    ```
 
