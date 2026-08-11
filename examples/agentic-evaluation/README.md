@@ -147,11 +147,13 @@ If you have access to a Red Hat OpenShift AI cluster with MLflow enabled:
    ```ini
    MLFLOW_TRACKING_URI=https://<your-rhoai-mlflow-route>/mlflow/
    MLFLOW_TRACKING_TOKEN=<your-openshift-token>
-   # Skip TLS verification (development only — set to false in production)
-   MLFLOW_TRACKING_INSECURE_TLS=true
+   # Development only: uncomment to skip TLS certificate verification.
+   # This disables certificate and hostname verification, which can
+   # expose the bearer token to interception. Do not use in production.
+   # MLFLOW_TRACKING_INSECURE_TLS=true
    ```
 
-   The tracking token is the same `--token` value from `oc login`. You can retrieve it with `oc whoami -t`.
+   `MLFLOW_TRACKING_TOKEN` is **required** for Option A — without it, MLflow returns a generic 401/403 error. The token is the same `--token` value from `oc login`. You can retrieve it with `oc whoami -t`.
 
 #### Option B — Local MLflow server
 
