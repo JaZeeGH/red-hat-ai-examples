@@ -85,7 +85,7 @@ If you see `ModuleNotFoundError: No module named 'deepspeed'`, ensure `deepspeed
 
 ### `/dev/shm` "No space left on device"
 
-DeepSpeed creates multiple NCCL communicators whose proxy buffers can exceed the default 64MB `/dev/shm` in Kubernetes pods. The notebook uses `PodTemplateOverrides` to mount a larger memory-backed `/dev/shm`:
+DeepSpeed creates multiple NCCL communicators whose proxy buffers can exceed the default 64MB `/dev/shm` in Kubernetes pods. The notebook uses `RuntimePatch` to mount a larger memory-backed `/dev/shm`:
 
 The notebook already includes this fix — see the `shm_override` variable in the configuration cell and the `options=[shm_override]` argument in the submit cell. This is not needed for DDP or FSDP, which create fewer NCCL communicators.
 
