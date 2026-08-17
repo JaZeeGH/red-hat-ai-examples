@@ -34,10 +34,8 @@ PII_ENTITY_NAMES = [
     "EMAIL_ADDRESS",
     "PHONE_NUMBER",
     "US_SSN",
-    "CREDIT_CARD",
     "IBAN_CODE",
     "IP_ADDRESS",
-    "US_BANK_NUMBER",
     "US_PASSPORT",
 ]
 
@@ -47,13 +45,11 @@ _PII_REGEX_PATTERNS = {
         r"\b(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]?\d{3}[-.\s]?\d{4}\b"
     ),
     "US_SSN": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
-    "CREDIT_CARD": re.compile(r"\b(?:\d[ -]*?){13,16}\b"),
     "IBAN_CODE": re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b"),
     "IP_ADDRESS": re.compile(
         r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}"
         r"(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\b"
     ),
-    "US_BANK_NUMBER": re.compile(r"\b\d{8,17}\b"),
     "US_PASSPORT": re.compile(r"\b[A-Z]\d{8}\b"),
 }
 
@@ -108,6 +104,8 @@ def _extract_file_path(inputs):
 
 def _extract_response(trace):
     """Extract the agent's final response from an OpenCode trace."""
+    if not trace.data.spans:
+        return ""
     root = trace.data.spans[0]
     outputs = root.outputs
     if isinstance(outputs, str):
@@ -121,6 +119,8 @@ def _extract_response(trace):
 
 def _extract_request(trace):
     """Extract the user's request from an OpenCode trace."""
+    if not trace.data.spans:
+        return ""
     root = trace.data.spans[0]
     inputs = root.inputs
     if isinstance(inputs, str):
@@ -252,24 +252,27 @@ def create_opencode_scorers(
         """
         tool_spans = _find_tool_spans(trace)
 
-        writes = []
-        reads_after = set()
-        seen_write = False
-
-        for s in tool_spans:
+        write_indices = {}
+        for i, s in enumerate(tool_spans):
             if s.name == "tool_write":
-                seen_write = True
-                writes.append(_extract_file_path(s.inputs))
-            elif s.name == "tool_read" and seen_write:
-                reads_after.add(_extract_file_path(s.inputs))
+                path = _extract_file_path(s.inputs)
+                if path:
+                    write_indices[path] = i
 
-        if not writes:
+        if not write_indices:
             return Feedback(
                 value="yes",
                 rationale="No writes performed — verification not applicable.",
             )
 
-        unverified = [w for w in writes if w and w not in reads_after]
+        read_after = set()
+        for i, s in enumerate(tool_spans):
+            if s.name == "tool_read":
+                path = _extract_file_path(s.inputs)
+                if path in write_indices and i > write_indices[path]:
+                    read_after.add(path)
+
+        unverified = [p for p in write_indices if p not in read_after]
         if unverified:
             return Feedback(
                 value="no",
@@ -316,7 +319,8 @@ def create_opencode_scorers(
             "repeated action loop.\n\n"
             "The agent is OpenCode — a coding assistant that uses tools: "
             "tool_read (read files), tool_write (write files), tool_bash "
-            "(run shell commands), tool_glob (search for files).\n\n"
+            "(run shell commands), tool_glob (search for files), "
+            "tool_skill (invoke a skill).\n\n"
             "A loop means the agent performed the same operation multiple "
             "times with the same or nearly identical inputs without making "
             "progress. Examples of loops:\n"
