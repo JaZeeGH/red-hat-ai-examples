@@ -19,6 +19,11 @@ It uses Training-Hub SFT and PyTorch FSDP to distribute the training on multiple
 
 * This example is compatible with RHOAI version 3.0. For a version compatible with RHOAI 3.2 see [this README](../../rhoai-3.2/training-hub/sft/README.md).
 
+> [!WARNING]
+> This example uses the **Kubeflow Training Operator v1 SDK** (`kubeflow.training`, `PyTorchJob`), which is deprecated as of RHOAI 3.5 and removed in RHOAI 3.6. It is kept as-is for historical reference only — do not use it on RHOAI 3.6+ clusters.
+>
+> For a current, Trainer v2–based version of this example, see [`rhoai-3.3/training-hub/sft`](../../../rhoai-3.3/training-hub/sft/README.md).
+
 ## Setup
 
 ### Setup Workbench

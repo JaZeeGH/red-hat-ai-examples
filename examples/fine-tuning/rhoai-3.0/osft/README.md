@@ -8,6 +8,11 @@ Our example will go through distributed training on two nodes with two GPUs each
 
 This example is compatible with RHOAI version 3.0. For a version compatible with RHOAI 3.2 see [this README](../rhoai-3.2/osft/README.md).
 
+> [!WARNING]
+> This example uses the **Kubeflow Training Operator v1 SDK** (`kubeflow.training`), which is deprecated as of RHOAI 3.5 and removed in RHOAI 3.6. It is kept as-is for historical reference only — do not use it on RHOAI 3.6+ clusters.
+>
+> For a current, Trainer v2–based version of this example, see [`rhoai-3.3/osft`](../../rhoai-3.3/osft/README.md).
+
 ## Overview
 
 Fine-tuning language models is hard—you need good data, lots of resources, and even small changes can cause problems. This makes it tough to add new abilities to a model. This problem is called continual learning and is what our new training technique, orthogonal subspace fine-tuning (OSFT), solves.
