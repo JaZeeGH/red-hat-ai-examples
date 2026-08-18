@@ -47,7 +47,7 @@ train_only_trainer = SpeculativeDecodingTrainer(
         checkpoint_freq=1.0,
         resume_from_checkpoint=True,
     ),
-    ...
+    # ...
 )
 ```
 

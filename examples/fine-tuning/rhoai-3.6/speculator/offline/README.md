@@ -39,7 +39,7 @@ offline_trainer = SpeculativeDecodingTrainer(
     vllm_endpoint=VLLM_ENDPOINT,
     hidden_states_path=f"{OFFLINE_OUTPUT}/hidden_states",
     training_resources=TRAINING_RESOURCES,
-    ...
+    # ...
 )
 ```
 
@@ -71,7 +71,7 @@ Open `speculator-offline-example.ipynb` and follow the notebook, which walks you
 
 | Parameter | Default | Description |
 | --- | --- | --- |
-| `VLLM_ENDPOINT` | `http://vllm-svc....:8000/v1` | URL of your external vLLM server |
+| `VLLM_ENDPOINT` | `http://vllm-svc.<namespace>.svc.cluster.local:8000/v1` | URL of your external vLLM server |
 | `dataset_name` | `magpie` | Built-in dataset name, HuggingFace ID, or PVC URI |
 | `max_samples` | 500 | Maximum number of dataset samples to process |
 | `epochs` | 3 | Number of full passes over the training data |
