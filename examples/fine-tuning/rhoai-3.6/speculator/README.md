@@ -27,7 +27,7 @@ vLLM already supports Eagle3 speculative decoding at serving time — if you hav
 | `OFFLINE` | Extracts hidden states via a user-managed external vLLM server, then trains. | When you already have a vLLM deployment or need custom vLLM configuration. | [offline/](offline/) |
 | `ONLINE` | Fully managed end-to-end: SDK deploys a vLLM sidecar, extracts hidden states, and trains. | Simplest path — recommended when you want everything in one step. | [online/](online/) |
 
-Each mode has its own subfolder with a dedicated notebook and README. The [combined notebook](./speculative-decoding-training-example.ipynb) demonstrates all four modes in a single file.
+Each mode has its own subfolder with a dedicated notebook and README.
 
 ## Supported Datasets
 
@@ -107,8 +107,8 @@ Which components are deployed depends on the training mode:
 ## Speculator-specific considerations
 
 - **PVC URIs**: All storage paths use PVC URIs (`pvc://<pvc-name>/<path>`). The SDK resolves these to container mount paths internally — do not use direct filesystem paths.
-- **Model on PVC**: The verifier model should be pre-downloaded to the shared PVC. The notebook includes a download step using `huggingface_hub.snapshot_download`.
-- **Target layer IDs**: When using a PVC URI for the verifier model, you must provide `target_layer_ids` explicitly via `SpeculatorConfig` because the SDK cannot access the model config from the PVC. When using a HuggingFace model ID, the SDK auto-detects target layer IDs.
+- **Model download**: The verifier model is specified by its HuggingFace model ID. The training pods download the model automatically during the job — no manual pre-download is required. Pass your HuggingFace token via the `env` parameter to authenticate.
+- **Target layer IDs**: When using a HuggingFace model ID, the SDK auto-detects `target_layer_ids`. When using a PVC URI, you must provide them explicitly via `SpeculatorConfig` because the SDK cannot access the model config from the PVC. The example notebooks set them explicitly for clarity.
 - **ClusterTrainingRuntimes**: Different training modes use different ClusterTrainingRuntimes (CTRs). The notebook includes placeholders for the CTR names — replace them with the CTR names available on your cluster. Each mode requires a specific CTR:
   - `DATA_ONLY` — Data extraction CTR (includes vLLM sidecar for hidden state extraction)
   - `TRAIN_ONLY` / `OFFLINE` — Model optimization CTR (training only, no vLLM sidecar)
@@ -176,8 +176,6 @@ Choose one of the mode-specific notebooks:
 | TRAIN_ONLY | [train-only/speculator-train-only-example.ipynb](train-only/speculator-train-only-example.ipynb) |
 | OFFLINE | [offline/speculator-offline-example.ipynb](offline/speculator-offline-example.ipynb) |
 | ONLINE | [online/speculator-online-example.ipynb](online/speculator-online-example.ipynb) |
-
-Or use the [combined notebook](./speculative-decoding-training-example.ipynb) which demonstrates all four modes in a single file.
 
 > [!NOTE]
 >
