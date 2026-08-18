@@ -37,7 +37,7 @@ online_trainer = SpeculativeDecodingTrainer(
     vllm_resources=VLLM_RESOURCES,
     vllm_gpu_memory_utilization=0.9,
     training_resources=TRAINING_RESOURCES,
-    ...
+    # ...
 )
 ```
 

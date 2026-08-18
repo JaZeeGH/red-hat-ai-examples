@@ -35,7 +35,7 @@ data_only_trainer = SpeculativeDecodingTrainer(
         datagen_concurrency=4,
         hidden_states_dtype="bfloat16",
     ),
-    ...
+    # ...
 )
 ```
 
