@@ -357,8 +357,6 @@ def create_opencode_scorers(
             "- Agent claims a command succeeded when tool_bash showed an "
             "error\n"
             "- Agent fabricates statistics not present in any tool output\n\n"
-            "User's request: {{ inputs }}\n"
-            "Agent's response: {{ outputs }}\n"
             "Trace: {{ trace }}\n\n"
             "Return 'yes' if grounded in tool outputs, 'no' if it "
             "fabricates or contradicts them."
