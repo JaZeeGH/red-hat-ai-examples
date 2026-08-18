@@ -20,14 +20,14 @@ vLLM already supports Eagle3 speculative decoding at serving time — if you hav
 
 `SpeculativeDecodingTrainer` supports four training modes:
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `DATA_ONLY` | Extracts hidden states from the verifier model using a managed vLLM sidecar. No training. | First step of a two-step workflow. Extract once, experiment with training hyperparameters many times. |
-| `TRAIN_ONLY` | Trains the draft model from pre-extracted hidden states. No vLLM needed. | Second step after `DATA_ONLY`. Iterate on hyperparameters without re-running extraction. |
-| `OFFLINE` | Extracts hidden states via a user-managed external vLLM server, then trains. | When you already have a vLLM deployment or need custom vLLM configuration. |
-| `ONLINE` | Fully managed end-to-end: SDK deploys a vLLM sidecar, extracts hidden states, and trains. | Simplest path — recommended when you want everything in one step. |
+| Mode | Description | Use Case | Example |
+|------|-------------|----------|---------|
+| `DATA_ONLY` | Extracts hidden states from the verifier model using a managed vLLM sidecar. No training. | First step of a two-step workflow. Extract once, experiment with training hyperparameters many times. | [data-only/](data-only/) |
+| `TRAIN_ONLY` | Trains the draft model from pre-extracted hidden states. No vLLM needed. | Second step after `DATA_ONLY`. Iterate on hyperparameters without re-running extraction. | [train-only/](train-only/) |
+| `OFFLINE` | Extracts hidden states via a user-managed external vLLM server, then trains. | When you already have a vLLM deployment or need custom vLLM configuration. | [offline/](offline/) |
+| `ONLINE` | Fully managed end-to-end: SDK deploys a vLLM sidecar, extracts hidden states, and trains. | Simplest path — recommended when you want everything in one step. | [online/](online/) |
 
-The notebook demonstrates all four modes.
+Each mode has its own subfolder with a dedicated notebook and README. The [combined notebook](./speculative-decoding-training-example.ipynb) demonstrates all four modes in a single file.
 
 ## Supported Datasets
 
@@ -163,12 +163,24 @@ Which components are deployed depends on the training mode:
 
 ![](../../images/05.png)
 
-### Running the example notebook
+### Running the example notebooks
 
 - From the workbench, clone this repository: `https://github.com/red-hat-data-services/red-hat-ai-examples.git`
-- Navigate to the `examples/fine-tuning/rhoai-3.6/speculator` directory and open [`speculative-decoding-training-example.ipynb`](./speculative-decoding-training-example.ipynb).
+- Navigate to the `examples/fine-tuning/rhoai-3.6/speculator` directory.
+
+Choose one of the mode-specific notebooks:
+
+| Mode | Notebook |
+|------|----------|
+| DATA_ONLY | [data-only/speculator-data-only-example.ipynb](data-only/speculator-data-only-example.ipynb) |
+| TRAIN_ONLY | [train-only/speculator-train-only-example.ipynb](train-only/speculator-train-only-example.ipynb) |
+| OFFLINE | [offline/speculator-offline-example.ipynb](offline/speculator-offline-example.ipynb) |
+| ONLINE | [online/speculator-online-example.ipynb](online/speculator-online-example.ipynb) |
+
+Or use the [combined notebook](./speculative-decoding-training-example.ipynb) which demonstrates all four modes in a single file.
 
 > [!NOTE]
+>
 > - You will need a Hugging Face token if using gated models (e.g., Llama models).
 > - Set the `HF_TOKEN` environment variable in your trainer configuration via the `env` parameter.
 
