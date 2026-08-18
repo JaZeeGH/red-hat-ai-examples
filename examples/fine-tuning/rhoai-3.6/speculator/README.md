@@ -79,7 +79,7 @@ The workbench only submits TrainJobs and monitors progress — no GPU is require
 
 Which components are deployed depends on the training mode:
 
-| Mode | Training Container | vLLM Sidecar | Total GPUs |
+| Mode | Training Container | vLLM Sidecar | TrainJob GPUs |
 |------|-------------------|--------------|------------|
 | `DATA_ONLY` | No | Yes | 1 |
 | `TRAIN_ONLY` | Yes | No | 2 |
