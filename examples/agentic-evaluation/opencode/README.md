@@ -1,17 +1,17 @@
 # OpenCode Skill Evaluation with MLflow Scorers
 
-This directory contains [OpenCode](https://github.com/opendatahub-io/opencode) skills and an evaluation notebook that validates MLflow scorers against OpenCode agent traces. Each skill defines a structured, multi-step task that an OpenCode agent executes, producing both a written output artifact and a traceable record of the agent's reasoning and tool use.
+This directory contains [OpenCode](https://github.com/opendatahub-io/opencode) skills and an evaluation notebook that demonstrates the end-to-end evaluation workflow: run scorers against skill traces, find a gap, strengthen the skill, and re-evaluate. Each skill defines a structured, multi-step task that an OpenCode agent executes, producing both a written output artifact and a traceable record of the agent's reasoning and tool use.
 
 ## Evaluation
 
-The [evaluation notebook](opencode_scorer_evaluation.ipynb) runs the project's MLflow scorers against OpenCode traces to verify they detect failure modes in an external (non-LangChain) agent harness. It covers:
+The [evaluation notebook](opencode_scorer_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for OpenCode skills — similar to the [end-to-end LangGraph notebook](../end-to-end/agent_evaluation_end_to_end.ipynb), but for a coding agent. Individual scorer behavior is covered in the [failure-mode notebooks](../failure-modes/); this notebook focuses on applying them as a complete workflow.
 
-- **Trace format compatibility** — documents how OpenCode traces differ from LangChain traces and which scorers need adaptation
-- **5 failure modes detected** — PII leakage, hallucinated tool calls, repeated action loops, hallucinated completions, and verification skipped
-- **Adapted scorers** — [`scorers.py`](scorers.py) provides OpenCode-specific scorer implementations
-- **Before/after skill strengthening** — detects agent non-compliance with read-back verification on `pr-summarizer`, strengthens the skill, and demonstrates the fix with synthetic traces
+- **Simulate skill traces** — creates traces mirroring real skill executions observed on an OpenShift AI cluster
+- **Two-tier evaluation** — runs built-in + custom scorers (deterministic checks → LLM judges)
+- **Discover a gap** — `write_verification_check` finds that `pr-summarizer` skips read-back after writing
+- **Strengthen and re-evaluate** — updates the skill language, confirms the fix with before/after evaluation
 
-The notebook uses synthetic traces to demonstrate scorer behavior, plus documents results from real traces captured on an OpenShift AI cluster (OpenCode 1.18.3, `gpt-oss-20b` via vLLM). The real trace analysis found a verification gap in the `pr-summarizer` skill — it writes its output but does not read it back to confirm.
+Custom scorers in [`scorers.py`](scorers.py) extend built-in MLflow scorers with checks specific to coding agents: write verification, hallucinated tool detection, repeated action loops, and PII detection (regex default, no extra dependencies).
 
 > **Note:** OpenCode 1.18.3's MLflow plugin creates trace metadata but does not upload span data as `traces.json` artifacts. Traces must be reconstructed from OpenCode's local SQLite database using the Python SDK with `MLFLOW_ENABLE_ASYNC_TRACE_LOGGING=false`. See the "Real Trace Analysis" section in the notebook for details.
 
