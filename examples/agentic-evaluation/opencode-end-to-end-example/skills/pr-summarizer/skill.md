@@ -65,8 +65,10 @@ You will be given a pull request number. Follow these steps in order:
 
    Create the directory if it does not exist.
 
-7. **Confirm** by reading back the first few lines of the written file, then
-   report the full output path.
+7. **Verify the write (required)** — you MUST read back the first few lines of
+   the written file before reporting completion. Do not skip this step even if
+   the write appeared to succeed. Report the full output path only after
+   confirming the file exists and the content looks correct.
 
 ## Output format
 

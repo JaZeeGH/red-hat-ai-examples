@@ -196,6 +196,17 @@ Each failure mode has its own self-contained notebook that creates traces, evalu
 | 8 | [Hallucinated Tool Call](failure-modes/08_hallucinated_tool_call/) | Custom `@scorer` (deterministic) | [08_hallucinated_tool_call.ipynb](failure-modes/08_hallucinated_tool_call/08_hallucinated_tool_call.ipynb) |
 | 9 | [Verification Skipped](failure-modes/09_verification_skipped/) | Custom `make_judge()` | [09_verification_skipped.ipynb](failure-modes/09_verification_skipped/09_verification_skipped.ipynb) |
 
+## OpenCode skill evaluation
+
+The [OpenCode evaluation notebook](opencode-end-to-end-example/opencode_agent_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for [OpenCode](https://github.com/opendatahub-io/opencode) skills on Red Hat OpenShift AI — similar to the LangGraph end-to-end notebook above, but for a coding agent. Individual scorer behavior is covered in the failure-mode notebooks; this notebook focuses on applying them as a complete workflow.
+
+- **Simulate skill traces** — creates traces mirroring real skill executions observed on cluster
+- **Two-tier evaluation** — runs built-in + custom scorers (deterministic → LLM judges)
+- **Discover a gap** — `write_verification_check` finds that `pr-summarizer` skips read-back after writing
+- **Strengthen and re-evaluate** — updates the skill language, confirms the fix with before/after evaluation
+
+See the [OpenCode README](opencode-end-to-end-example/README.md) for setup and file details.
+
 ## LangGraph evaluation
 
 The failure mode notebooks above teach individual scorers using synthetic traces. The [LangGraph evaluation notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) applies them all together on a real agent:
@@ -272,6 +283,11 @@ agentic-evaluation/
     langgraph_agent_evaluation.ipynb — real agent + two-tier evaluation
     scorers.py           — custom scorers for the NPS agent
     golden_queries.json  — 5 evaluation queries with expectations
+  opencode-end-to-end-example/
+    opencode_agent_evaluation.ipynb — end-to-end evaluation on OpenCode traces
+    scorers.py           — custom scorers for OpenCode trace format
+    golden_queries.json  — reference queries for OpenCode skills
+    skills/              — OpenCode skill definitions (python-file-review, pr-summarizer)
 ```
 
 `tools.py` contains the tool definitions (function name, description, parameters) used by the simulated agents in the notebooks. Each failure mode imports the tools it needs. You don't need to modify this file unless you're adding new failure modes.

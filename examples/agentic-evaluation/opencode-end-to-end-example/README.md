@@ -1,6 +1,35 @@
-# OpenCode Skills for Agentic Evaluation
+# OpenCode Skill Evaluation with MLflow Scorers
 
-This directory contains [OpenCode](https://github.com/opendatahub-io/opencode) skills used to generate MLflow traces for agentic evaluation. Each skill defines a structured, multi-step task that an OpenCode agent executes, producing both a written output artifact and a traceable record of the agent's reasoning and tool use.
+This directory contains [OpenCode](https://github.com/opendatahub-io/opencode) skills and an evaluation notebook that demonstrates the end-to-end evaluation workflow: run scorers against skill traces, find a gap, strengthen the skill, and re-evaluate. Each skill defines a structured, multi-step task that an OpenCode agent executes, producing both a written output artifact and a traceable record of the agent's reasoning and tool use.
+
+## Evaluation
+
+The [evaluation notebook](opencode_agent_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for OpenCode skills — similar to the [LangGraph evaluation notebook](../langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb), but for a coding agent. Individual scorer behavior is covered in the [failure-mode notebooks](../failure-modes/); this notebook focuses on applying them as a complete workflow.
+
+- **Simulate skill traces** — creates traces mirroring real skill executions observed on an OpenShift AI cluster
+- **Two-tier evaluation** — runs built-in + custom scorers (deterministic checks → LLM judges)
+- **Discover a gap** — `write_verification_check` finds that `pr-summarizer` skips read-back after writing
+- **Strengthen and re-evaluate** — updates the skill language, confirms the fix with before/after evaluation
+
+Custom scorers in [`scorers.py`](scorers.py) extend built-in MLflow scorers with checks specific to coding agents: write verification, hallucinated tool detection, repeated action loops, and PII detection (regex default, no extra dependencies).
+
+> **Note:** OpenCode 1.18.3's MLflow plugin creates trace metadata but does not upload span data as `traces.json` artifacts. Traces must be reconstructed from OpenCode's local SQLite database using the Python SDK with `MLFLOW_ENABLE_ASYNC_TRACE_LOGGING=false`.
+
+### Running the evaluation notebook
+
+1. Complete the [project setup](../README.md#setup) (dependencies, API keys, MLflow tracking)
+2. Open [opencode_agent_evaluation.ipynb](opencode_agent_evaluation.ipynb) and run all cells
+
+> **`pii_check` note:** Uses deterministic regex patterns by default (no extra setup). Set `OPENCODE_USE_GUARDRAILS_PII=true` and install `guardrails-ai-detect-pii` to use Presidio-based `DetectPII` instead. See [PII Leakage setup](../failure-modes/04_pii_leakage/README.md).
+
+### Files
+
+| File | What it is |
+|---|---|
+| [opencode_agent_evaluation.ipynb](opencode_agent_evaluation.ipynb) | Evaluation notebook — runs scorers against OpenCode traces |
+| [scorers.py](scorers.py) | Adapted scorers for OpenCode trace format |
+| [golden_queries.json](golden_queries.json) | Reference queries for both skills |
+| [skills/](skills/) | Skill definitions mounted in the OpenCode pod |
 
 ## Deploying OpenCode
 
@@ -159,7 +188,7 @@ The clone is stored on the workspace PVC and persists across pod restarts. Do no
 4. Gets file stats: `git diff --stat main...pr/<N>`
 5. Analyzes purpose, approach, scope, risk, and test coverage
 6. Writes the summary file
-7. Reads back the first lines to confirm the write
+7. Verifies the write by reading back the first lines (required before reporting completion)
 
 **Output:** `/opt/app-root/workspace/pr-summaries/pr-<NUMBER>-summary.md`
 

@@ -8,4 +8,5 @@ mlflow.db
 **/trip_plans/
 **/.deepeval/
 **/.guardrails/
+**/*.executed.ipynb
 _old_*
