@@ -223,7 +223,7 @@ deploy-guardrails: ## Deploy NeMo Guardrails to the cluster
 	    echo "WARNING: Guardrails deployment not ready yet. Check: oc get pods -l app.kubernetes.io/name=langgraph-react-agent-guardrails" && \
 	  echo "" && \
 	  echo "Guardrails deployed. Update .env to route through the guardrails proxy:" && \
-	  echo "  BASE_URL=http://langgraph-react-agent-guardrails.$$NS.svc.cluster.local:8090/v1" && \
+	  echo "  BASE_URL=http://langgraph-react-agent-guardrails.$$NS.svc.cluster.local/v1" && \
 	  echo "Then redeploy the agent: make deploy"
 
 undeploy-guardrails: ## Remove NeMo Guardrails from the cluster
