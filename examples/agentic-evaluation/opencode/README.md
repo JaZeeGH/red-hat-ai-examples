@@ -13,7 +13,7 @@ The [evaluation notebook](opencode_scorer_evaluation.ipynb) demonstrates the end
 
 Custom scorers in [`scorers.py`](scorers.py) extend built-in MLflow scorers with checks specific to coding agents: write verification, hallucinated tool detection, repeated action loops, and PII detection (regex default, no extra dependencies).
 
-> **Note:** OpenCode 1.18.3's MLflow plugin creates trace metadata but does not upload span data as `traces.json` artifacts. Traces must be reconstructed from OpenCode's local SQLite database using the Python SDK with `MLFLOW_ENABLE_ASYNC_TRACE_LOGGING=false`. See the "Real Trace Analysis" section in the notebook for details.
+> **Note:** OpenCode 1.18.3's MLflow plugin creates trace metadata but does not upload span data as `traces.json` artifacts. Traces must be reconstructed from OpenCode's local SQLite database using the Python SDK with `MLFLOW_ENABLE_ASYNC_TRACE_LOGGING=false`.
 
 ### Running the evaluation notebook
 
