@@ -4,7 +4,7 @@ This directory contains [OpenCode](https://github.com/opendatahub-io/opencode) s
 
 ## Evaluation
 
-The [evaluation notebook](opencode_agent_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for OpenCode skills — similar to the [end-to-end LangGraph notebook](../end-to-end/agent_evaluation_end_to_end.ipynb), but for a coding agent. Individual scorer behavior is covered in the [failure-mode notebooks](../failure-modes/); this notebook focuses on applying them as a complete workflow.
+The [evaluation notebook](opencode_agent_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for OpenCode skills — similar to the [LangGraph evaluation notebook](../langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb), but for a coding agent. Individual scorer behavior is covered in the [failure-mode notebooks](../failure-modes/); this notebook focuses on applying them as a complete workflow.
 
 - **Simulate skill traces** — creates traces mirroring real skill executions observed on an OpenShift AI cluster
 - **Two-tier evaluation** — runs built-in + custom scorers (deterministic checks → LLM judges)
