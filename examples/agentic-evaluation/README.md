@@ -3,7 +3,7 @@
 A hands-on guide to evaluating AI agents using [MLflow](https://mlflow.org/docs/latest/llms/tracing/index.html) on [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) (RHOAI) for experiment tracking and trace storage. This repo covers 9 failure modes — the ways agents break in production — and teaches you how to detect each one using MLflow scorers (both built-in and custom). A local MLflow server can also be used as an alternative.
 
 - **9 failure mode notebooks** — each focused on one failure mode, showing how to catch it using MLflow's built-in and custom scorers against synthetic traces — no live agent or API keys needed
-- **1 end-to-end notebook** — builds a real National Parks trip planning agent with LangGraph, traces it with MLflow, and evaluates it across all 9 failure modes using a two-tier scoring strategy (deterministic checks → LLM judges)
+- **1 LangGraph evaluation notebook** — builds a real National Parks trip planning agent with LangGraph, traces it with MLflow, and evaluates it across all 9 failure modes using a two-tier scoring strategy (deterministic checks → LLM judges)
 
 ## Background
 
@@ -68,7 +68,7 @@ Each notebook in this repo demonstrates scorers — some with expectations, some
 
 These notebooks use synthetic traces to demonstrate how each scorer works — hardcoded mock functions that produce the same trace structure a real agent would, with predetermined tool calls and responses. No LLM or API keys are needed to create them.
 
-With a real agent, you would skip trace creation entirely — MLflow's autolog captures traces automatically, and you'd run the same scorers against those real traces. The [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) demonstrates exactly this — it builds a real National Parks trip planning agent with LangGraph, traces it with `mlflow.langchain.autolog()`, and evaluates the traces across all 9 failure modes.
+With a real agent, you would skip trace creation entirely — MLflow's autolog captures traces automatically, and you'd run the same scorers against those real traces. The [LangGraph notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) demonstrates exactly this — it builds a real National Parks trip planning agent with LangGraph, traces it with `mlflow.langchain.autolog()`, and evaluates the traces across all 9 failure modes.
 
 ### How to use these notebooks
 
@@ -82,7 +82,7 @@ Every notebook follows the same structure:
 4. **Evaluate** — runs one or more scorers against the traces and prints results
 5. **Interpret** — explains what the scores mean and when to use each scorer
 
-The notebooks can be run in any order, but there's a natural learning path: notebooks 1–4 use existing MLflow scorers (built-in and third-party integrations), then notebooks 5–9 introduce custom scorers built with `@scorer` and `make_judge()`. After working through the failure modes, the [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) brings them all together — evaluating a real agent across all 9 failure modes with a two-tier scoring strategy.
+The notebooks can be run in any order, but there's a natural learning path: notebooks 1–4 use existing MLflow scorers (built-in and third-party integrations), then notebooks 5–9 introduce custom scorers built with `@scorer` and `make_judge()`. After working through the failure modes, the [LangGraph notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) brings them all together — evaluating a real agent across all 9 failure modes with a two-tier scoring strategy.
 
 ## Setup
 
@@ -183,16 +183,16 @@ Each failure mode has its own self-contained notebook that creates traces, evalu
 | 8 | [Hallucinated Tool Call](failure-modes/08_hallucinated_tool_call/) | Custom `@scorer` (deterministic) | [08_hallucinated_tool_call.ipynb](failure-modes/08_hallucinated_tool_call/08_hallucinated_tool_call.ipynb) |
 | 9 | [Verification Skipped](failure-modes/09_verification_skipped/) | Custom `make_judge()` | [09_verification_skipped.ipynb](failure-modes/09_verification_skipped/09_verification_skipped.ipynb) |
 
-## End-to-end evaluation
+## LangGraph evaluation
 
-The failure mode notebooks above teach individual scorers using synthetic traces. The [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) applies them all together on a real agent:
+The failure mode notebooks above teach individual scorers using synthetic traces. The [LangGraph evaluation notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) applies them all together on a real agent:
 
 - **Builds a real agent** — a National Parks trip planning assistant using LangGraph, with 7 tools (5 NPS API + 2 custom)
 - **Traces automatically** — `mlflow.langchain.autolog()` captures every tool call and decision
 - **Evaluates across all 9 failure modes** — using 11 scorers organized into a two-tier strategy (Tier 1 deterministic → gating → Tier 2 LLM judges)
-- **Custom scorers** — defined in [`end-to-end/scorers.py`](end-to-end/scorers.py) using MLflow's `@scorer` decorator and `make_judge()` function, tailored to the NPS agent
+- **Custom scorers** — defined in [`langgraph-end-to-end-example/scorers.py`](langgraph-end-to-end-example/scorers.py) using MLflow's `@scorer` decorator and `make_judge()` function, tailored to the NPS agent
 
-See the [end-to-end README](end-to-end/README.md) for setup details and the full scorer breakdown.
+See the [LangGraph README](langgraph-end-to-end-example/README.md) for setup details and the full scorer breakdown.
 
 ## Cost-effective evaluation strategy
 
@@ -227,10 +227,10 @@ Each trace costs one or more LLM calls. Run these on a representative sample to 
 
 ### In practice
 
-The Tier 1 and Tier 2 tables above list all scorers taught across the failure mode notebooks. The [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) uses a subset of these — see its [scorer table](end-to-end/README.md#scorers-used) for the exact set.
+The Tier 1 and Tier 2 tables above list all scorers taught across the failure mode notebooks. The [LangGraph evaluation notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) uses a subset of these — see its [scorer table](langgraph-end-to-end-example/README.md#scorers-used) for the exact set.
 
 1. **Run Tier 1 on 100% of traces** — fast, free, catches obvious failures.
-2. **For failure modes covered by both tiers** (PII Leakage, Repeated Action Loop, Tool Misuse): if Tier 1 finds failures on multiple traces (e.g., ≥2), the problem is confirmed — skip the corresponding LLM judge and fix the agent. A single failure could be noise, so you may still want the LLM judge to investigate. The end-to-end notebook uses `GATE_THRESHOLD=2` for this decision.
+2. **For failure modes covered by both tiers** (PII Leakage, Repeated Action Loop, Tool Misuse): if Tier 1 finds failures on multiple traces (e.g., ≥2), the problem is confirmed — skip the corresponding LLM judge and fix the agent. A single failure could be noise, so you may still want the LLM judge to investigate. The LangGraph evaluation notebook uses `GATE_THRESHOLD=2` for this decision.
 3. **For failure modes with no Tier 1 scorer** (Excessive Steps, Goal Achievement, Graceful Refusal, Hallucinated Completion, Verification Skipped): run the LLM judge on a sampled subset.
 
 ### Why this is cost-effective
@@ -255,8 +255,8 @@ agentic-evaluation/
     07_repeated_action_loop/ — notebook + docs + README
     08_hallucinated_tool_call/ — notebook + docs + README
     09_verification_skipped/  — notebook + docs + README
-  end-to-end/
-    agent_evaluation_end_to_end.ipynb — real agent + two-tier evaluation
+  langgraph-end-to-end-example/
+    langgraph_agent_evaluation.ipynb — real agent + two-tier evaluation
     scorers.py           — custom scorers for the NPS agent
     golden_queries.json  — 5 evaluation queries with expectations
 ```
