@@ -4,7 +4,7 @@ This example demonstrates how to train an Eagle3 draft model from pre-extracted 
 
 > **Prerequisite:** This notebook requires hidden states extracted by a completed [DATA_ONLY](../data-only/) run. Run the `data-only/` notebook first.
 
-This example uses **Qwen3-8B** as the verifier model and trains from data extracted with the **ultrachat** dataset.
+This example uses **Qwen3-1.7B** as the verifier model and trains from data extracted with the **ultrachat** dataset.
 
 ## When to use TRAIN_ONLY
 
@@ -39,6 +39,17 @@ Only the draft model's small components are trained — the verifier model is fr
 
 The draft model is very small (~0.5 GB for an 8B verifier, ~1 GB for a 70B verifier), making training fast and memory-efficient.
 
+## Hardware Requirements
+
+The table below shows the **minimum** resources needed with Qwen3-1.7B. The notebook defaults to minimum values with recommended settings in comments.
+
+| Component | GPU (min) | GPU (rec.) | CPU (min) | CPU (rec.) | Memory (min) | Memory (rec.) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Training container | 1 | 2 | 1 core | 4 cores | 32Gi | 64Gi |
+
+- 1 GPU works but is slower — 2 GPUs enable data-parallel training
+- No vLLM sidecar or external server is needed — TRAIN_ONLY reads directly from the PVC
+
 ## Setup
 
 See the [common setup guide](../README.md#setup) for step-by-step instructions on creating a workbench, shared storage, and cloning the repository.
@@ -67,8 +78,8 @@ Even though TRAIN_ONLY does not run inference, it still requires the `verifier_m
 
 | Input Type | Example | `target_layer_ids` |
 | --- | --- | --- |
-| **HuggingFace ID** | `"Qwen/Qwen3-8B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
-| **PVC URI** | `"pvc://shared/models/Qwen3-8B"` | Must be provided explicitly — SDK cannot read model config from PVC |
+| **HuggingFace ID** | `"Qwen/Qwen3-1.7B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
+| **PVC URI** | `"pvc://shared/models/Qwen3-1.7B"` | Must be provided explicitly — SDK cannot read model config from PVC |
 
 The training pods download the model automatically when using a HuggingFace ID. Pass your HuggingFace token via the `env` parameter to authenticate.
 
@@ -134,7 +145,7 @@ train_only_trainer = SpeculativeDecodingTrainer(
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `training_resources` | Dict | GPU/CPU/memory for the training container. Example: `{"nvidia.com/gpu": 2, "cpu": "4", "memory": "64Gi"}`. 2 GPUs enable data-parallel training. |
+| `training_resources` | Dict | GPU/CPU/memory for the training container. Minimum: `{"nvidia.com/gpu": 1, "cpu": "1", "memory": "32Gi"}`. Recommended: `{"nvidia.com/gpu": 2, "cpu": "4", "memory": "64Gi"}` (2 GPUs enable data-parallel training). |
 
 TRAIN_ONLY does not use `vllm_resources` or `vllm_endpoint` — there is no vLLM server involved.
 
@@ -238,5 +249,5 @@ If training errors mention layer dimension mismatches:
 If the training container runs out of memory:
 
 - Reduce `total_seq_len` to lower memory usage
-- Ensure `training_resources` has enough GPU memory (64Gi recommended for Qwen3-8B)
+- Ensure `training_resources` has enough GPU memory (64Gi recommended for Qwen3-1.7B)
 - Check that no other workloads are competing for GPU resources on the node

@@ -7,7 +7,7 @@ This example demonstrates how to extract hidden states from a verifier model usi
 
 Both methods produce identical output — hidden state tensors (`.safetensors` files) written to the output PVC. No training happens in this mode. It is the first step of a two-step workflow: extract hidden states once, then train the draft model many times with different hyperparameters using [TRAIN_ONLY](../train-only/).
 
-This example uses **Qwen3-8B** as the verifier model and the `ultrachat` built-in dataset.
+This example uses **Qwen3-1.7B** as the verifier model and the `ultrachat` built-in dataset.
 
 ## When to use DATA_ONLY
 
@@ -24,7 +24,7 @@ DATA_ONLY is the recommended first step when you plan to experiment with trainin
 
 ## How DATA_ONLY Works
 
-1. The verifier model (e.g., Qwen3-8B) is loaded into the vLLM server — either a managed sidecar (Method 1) or your external deployment (Method 2)
+1. The verifier model (e.g., Qwen3-1.7B) is loaded into the vLLM server — either a managed sidecar (Method 1) or your external deployment (Method 2)
 2. The dataset is preprocessed and tokenized
 3. If `regenerate_responses=True`, fresh on-policy responses are generated from the dataset prompts using the vLLM server, replacing the original dataset responses
 4. Each sample is fed through the verifier model, and hidden states are captured from the 4 target layers specified by `target_layer_ids`
@@ -130,7 +130,7 @@ data_only_external = SpeculativeDecodingTrainer(
 
 Before running this method, you must have a vLLM server running that:
 
-- Serves the **same verifier model** (Qwen3-8B) used in the extraction configuration
+- Serves the **same verifier model** (Qwen3-1.7B) used in the extraction configuration
 - Exposes the OpenAI-compatible API (typically at port 8000, path `/v1`)
 - Is accessible from the extraction pods (e.g., via a Kubernetes service URL)
 - Is in the **same namespace** and has access to the **same shared PVC** as the TrainJob — hidden states are written to the PVC and both the extraction job and vLLM server must see the same filesystem
@@ -143,7 +143,7 @@ Before running this method, you must have a vLLM server running that:
 
 > [!NOTE]
 >
-> When using an external vLLM endpoint, the SDK may require `verifier_model` to be specified as a **PVC URI** (e.g., `pvc://shared/models/Qwen3-8B`) rather than a HuggingFace ID, since the external vLLM server already has the model loaded from the shared PVC. In this case, `target_layer_ids` and `hidden_states_path` must also be provided explicitly.
+> When using an external vLLM endpoint, the SDK may require `verifier_model` to be specified as a **PVC URI** (e.g., `pvc://shared/models/Qwen3-1.7B`) rather than a HuggingFace ID, since the external vLLM server already has the model loaded from the shared PVC. In this case, `target_layer_ids` and `hidden_states_path` must also be provided explicitly.
 
 ## Verifier Model
 
@@ -151,10 +151,10 @@ The `verifier_model` parameter specifies the large language model whose hidden s
 
 | Input Type | Example | `target_layer_ids` |
 | --- | --- | --- |
-| **HuggingFace ID** | `"Qwen/Qwen3-8B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
-| **PVC URI** | `"pvc://shared/models/Qwen3-8B"` | Must be provided explicitly — SDK cannot read model config from PVC |
+| **HuggingFace ID** | `"Qwen/Qwen3-1.7B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
+| **PVC URI** | `"pvc://shared/models/Qwen3-1.7B"` | Must be provided explicitly — SDK cannot read model config from PVC |
 
-When using a HuggingFace ID, the training pods download the model automatically during the job. Pass your HuggingFace token via the `env` parameter (`{"HF_TOKEN": HF_TOKEN}`) to authenticate, especially for gated models. Even for non-gated models like Qwen3-8B, a token is recommended to avoid rate limits.
+When using a HuggingFace ID, the training pods download the model automatically during the job. Pass your HuggingFace token via the `env` parameter (`{"HF_TOKEN": HF_TOKEN}`) to authenticate, especially for gated models. Even for non-gated models like Qwen3-1.7B, a token is recommended to avoid rate limits.
 
 Direct filesystem paths (e.g., `/mnt/models/...`) are **not supported** — training runs inside Kubernetes pods where local paths from the user's machine do not exist.
 
@@ -179,9 +179,23 @@ Eagle3 reads hidden states from exactly **4 intermediate layers** of the verifie
 - **Late layer** — captures high-level reasoning
 - **Final layer** — provides the target distribution for training
 
-For Qwen3-8B (36 hidden layers), the auto-computed formula `[2, n//2, n-3, n]` gives `[2, 18, 33, 36]`. The example notebooks use `[3, 18, 33, 36]` for slightly different early-layer coverage.
+For Qwen3-1.7B (28 hidden layers), the auto-computed formula `[2, n//2, n-3, n]` gives `[2, 14, 25, 28]`.
 
 When using a PVC URI for `verifier_model`, you **must** provide `target_layer_ids` explicitly via `SpeculatorConfig(target_layer_ids=[...])` because the SDK cannot access the model configuration file from the PVC at validation time. The SDK validates that exactly 4 IDs are provided — fewer or more raises a `ValueError`.
+
+## Hardware Requirements
+
+The table below shows the **minimum** resources needed to run each method with Qwen3-1.7B.
+The notebooks default to minimum values with recommended settings in comments.
+
+| Method | Component | GPU (min) | GPU (rec.) | CPU (min) | CPU (rec.) | Memory (min) | Memory (rec.) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Method 1 (sidecar) | vLLM sidecar | 1 | 1 | 1 core | 4 cores | 48Gi | 96Gi |
+| Method 2 (external) | Extraction pod | 0 | 0 | 1 core | 2 cores | 16Gi | 32Gi |
+
+- The vLLM sidecar is hard-limited to exactly **1 GPU** — more raises a `ValueError`
+- Method 2 needs no GPU in the TrainJob pod since vLLM runs externally
+- No training container is deployed in DATA_ONLY mode
 
 ## Output Structure
 
@@ -251,7 +265,7 @@ oc logs <pod-name> -c vllm-sidecar
 
 Common fixes:
 
-- Increase `memory` in `vllm_resources` (96Gi is recommended for Qwen3-8B)
+- Increase `memory` in `vllm_resources` (96Gi is recommended for Qwen3-1.7B)
 - Ensure the GPU type supports the model size (Ampere-based or newer recommended)
 - Verify the HuggingFace model ID is correct and accessible with your token
 - The vLLM sidecar supports only **1 GPU** — if you specified more, you will get a `ValueError`

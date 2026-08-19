@@ -4,7 +4,7 @@ This example demonstrates how to train an Eagle3 draft model using the `OFFLINE`
 
 This is useful when you already have a vLLM deployment running (e.g., as an OpenShift AI model serving instance) and want to reuse it for hidden state extraction instead of having the SDK deploy a sidecar.
 
-This example uses **Qwen3-8B** as the verifier model and the `magpie` built-in dataset.
+This example uses **Qwen3-1.7B** as the verifier model and the `magpie` built-in dataset.
 
 ## When to use OFFLINE
 
@@ -35,6 +35,18 @@ OFFLINE mode is the right choice when you already have a vLLM server running and
 
 The key difference from ONLINE mode is step 1 — the vLLM server is external, not a managed sidecar. The SDK sends extraction requests to your `vllm_endpoint` URL.
 
+## Hardware Requirements
+
+The table below shows the **minimum** resources needed with Qwen3-1.7B. The notebook defaults to minimum values with recommended settings in comments.
+
+| Component | GPU (min) | GPU (rec.) | CPU (min) | CPU (rec.) | Memory (min) | Memory (rec.) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Training container | 1 | 2 | 1 core | 4 cores | 32Gi | 64Gi |
+| External vLLM server | 1 | 1 | 1 core | 4 cores | 48Gi | 96Gi |
+
+- 1 training GPU works but is slower — 2 GPUs enable data-parallel training
+- The external vLLM server is user-managed — its resources are separate from the TrainJob
+
 ## Setup
 
 See the [common setup guide](../README.md#setup) for step-by-step instructions on creating a workbench, shared storage, and cloning the repository.
@@ -45,7 +57,7 @@ Navigate to `examples/fine-tuning/rhoai-3.6/speculator/offline` and open `specul
 
 Before running this notebook, you must have a vLLM server running that:
 
-- Serves the **same verifier model** (Qwen3-8B) used in training
+- Serves the **same verifier model** (Qwen3-1.7B) used in training
 - Exposes the OpenAI-compatible API (typically at port 8000, path `/v1`)
 - Is accessible from the training pods (e.g., via a Kubernetes service URL)
 - Is in the **same namespace** and has access to the **same shared PVC** as the TrainJob — hidden states are written to the PVC and both the training job and vLLM server must see the same filesystem
@@ -58,7 +70,7 @@ Before running this notebook, you must have a vLLM server running that:
 
 > [!NOTE]
 >
-> When using an external vLLM endpoint, the SDK may require `verifier_model` to be specified as a **PVC URI** (e.g., `pvc://shared/models/Qwen3-8B`) rather than a HuggingFace ID, since the external vLLM server already has the model loaded from the shared PVC. In this case, `target_layer_ids` must also be provided explicitly in `SpeculatorConfig`.
+> When using an external vLLM endpoint, the SDK may require `verifier_model` to be specified as a **PVC URI** (e.g., `pvc://shared/models/Qwen3-1.7B`) rather than a HuggingFace ID, since the external vLLM server already has the model loaded from the shared PVC. In this case, `target_layer_ids` must also be provided explicitly in `SpeculatorConfig`.
 
 ### ClusterTrainingRuntime (CTR)
 
@@ -72,8 +84,8 @@ The `verifier_model` parameter specifies the large language model whose hidden s
 
 | Input Type | Example | `target_layer_ids` |
 | --- | --- | --- |
-| **HuggingFace ID** | `"Qwen/Qwen3-8B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
-| **PVC URI** | `"pvc://shared/models/Qwen3-8B"` | Must be provided explicitly — SDK cannot read model config from PVC |
+| **HuggingFace ID** | `"Qwen/Qwen3-1.7B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
+| **PVC URI** | `"pvc://shared/models/Qwen3-1.7B"` | Must be provided explicitly — SDK cannot read model config from PVC |
 
 When using a HuggingFace ID, the training pods download the model automatically during the job. Pass your HuggingFace token via the `env` parameter (`{"HF_TOKEN": HF_TOKEN}`) to authenticate.
 
@@ -100,7 +112,7 @@ Eagle3 reads hidden states from exactly **4 intermediate layers** of the verifie
 - **Late layer** — captures high-level reasoning
 - **Final layer** — provides the target distribution for training
 
-For Qwen3-8B (36 hidden layers), the auto-computed formula `[2, n//2, n-3, n]` gives `[2, 18, 33, 36]`. The example notebooks use `[3, 18, 33, 36]` for slightly different early-layer coverage.
+For Qwen3-1.7B (28 hidden layers), the auto-computed formula `[2, n//2, n-3, n]` gives `[2, 14, 25, 28]`.
 
 When using a PVC URI for `verifier_model`, you **must** provide `target_layer_ids` explicitly via `SpeculatorConfig(target_layer_ids=[...])` because the SDK cannot access the model configuration file from the PVC at validation time. The SDK validates that exactly 4 IDs are provided — fewer or more raises a `ValueError`.
 
@@ -145,7 +157,7 @@ The endpoint URL follows the Kubernetes service DNS convention: `http://<service
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `hidden_states_path` | PVC URI | Where extracted hidden states are saved on the PVC. The training step reads from this path after extraction completes. |
-| `training_resources` | Dict | GPU/CPU/memory for the training container. Example: `{"nvidia.com/gpu": 2, "cpu": "4", "memory": "64Gi"}`. 2 GPUs enable data-parallel training. |
+| `training_resources` | Dict | GPU/CPU/memory for the training container. Minimum: `{"nvidia.com/gpu": 1, "cpu": "1", "memory": "32Gi"}`. Recommended: `{"nvidia.com/gpu": 2, "cpu": "4", "memory": "64Gi"}` (2 GPUs enable data-parallel training). |
 
 ### Training Hyperparameters
 
