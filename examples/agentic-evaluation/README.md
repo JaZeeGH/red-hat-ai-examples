@@ -176,7 +176,7 @@ mlflow server --host 127.0.0.1 --port 5000
 
 Set `MLFLOW_TRACKING_URI=http://localhost:5000` in your `.env` file. After running a notebook, view traces and evaluation results in the MLflow UI at `http://localhost:5000`.
 
-> **Note:** If port 5000 is unavailable, use any free port (e.g., `--port 5001`) and update `MLFLOW_TRACKING_URI` in `.env` to match.
+> **Note:** If you get an HTTP 403 error or a "port already in use" error, use any free port (e.g., `--port 5001`) and update `MLFLOW_TRACKING_URI` in `.env` to match.
 
 No code changes are needed — the notebooks read these values from `.env` automatically.
 

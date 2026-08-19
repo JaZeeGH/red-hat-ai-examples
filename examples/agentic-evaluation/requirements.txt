@@ -3,6 +3,7 @@ mlflow>=3.10.0
 openai>=2.44.0
 python-dotenv>=1.0
 ipykernel
+jupyter
 
 # End-to-end notebook (LangGraph agent)
 langchain>=1.2
