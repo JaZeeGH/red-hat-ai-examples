@@ -1,4 +1,4 @@
-"""Custom scorers for end-to-end agent evaluation.
+"""Custom scorers for LangGraph agent evaluation.
 
 Usage:
     from scorers import create_scorers
