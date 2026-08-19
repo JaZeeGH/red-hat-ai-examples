@@ -4,7 +4,7 @@ This directory contains [OpenCode](https://github.com/opendatahub-io/opencode) s
 
 ## Evaluation
 
-The [evaluation notebook](opencode_scorer_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for OpenCode skills — similar to the [end-to-end LangGraph notebook](../end-to-end/agent_evaluation_end_to_end.ipynb), but for a coding agent. Individual scorer behavior is covered in the [failure-mode notebooks](../failure-modes/); this notebook focuses on applying them as a complete workflow.
+The [evaluation notebook](opencode_agent_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for OpenCode skills — similar to the [end-to-end LangGraph notebook](../end-to-end/agent_evaluation_end_to_end.ipynb), but for a coding agent. Individual scorer behavior is covered in the [failure-mode notebooks](../failure-modes/); this notebook focuses on applying them as a complete workflow.
 
 - **Simulate skill traces** — creates traces mirroring real skill executions observed on an OpenShift AI cluster
 - **Two-tier evaluation** — runs built-in + custom scorers (deterministic checks → LLM judges)
@@ -18,7 +18,7 @@ Custom scorers in [`scorers.py`](scorers.py) extend built-in MLflow scorers with
 ### Running the evaluation notebook
 
 1. Complete the [project setup](../README.md#setup) (dependencies, API keys, MLflow tracking)
-2. Open [opencode_scorer_evaluation.ipynb](opencode_scorer_evaluation.ipynb) and run all cells
+2. Open [opencode_agent_evaluation.ipynb](opencode_agent_evaluation.ipynb) and run all cells
 
 > **`pii_check` note:** Uses deterministic regex patterns by default (no extra setup). Set `OPENCODE_USE_GUARDRAILS_PII=true` and install `guardrails-ai-detect-pii` to use Presidio-based `DetectPII` instead. See [PII Leakage setup](../failure-modes/04_pii_leakage/README.md).
 
@@ -26,7 +26,7 @@ Custom scorers in [`scorers.py`](scorers.py) extend built-in MLflow scorers with
 
 | File | What it is |
 |---|---|
-| [opencode_scorer_evaluation.ipynb](opencode_scorer_evaluation.ipynb) | Evaluation notebook — runs scorers against OpenCode traces |
+| [opencode_agent_evaluation.ipynb](opencode_agent_evaluation.ipynb) | Evaluation notebook — runs scorers against OpenCode traces |
 | [scorers.py](scorers.py) | Adapted scorers for OpenCode trace format |
 | [golden_queries.json](golden_queries.json) | Reference queries for both skills |
 | [skills/](skills/) | Skill definitions mounted in the OpenCode pod |
