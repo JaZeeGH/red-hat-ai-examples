@@ -1,0 +1,32 @@
+metadata:
+  title: "Red Teaming an Agent with Garak on Red Hat OpenShift AI"
+  description: >-
+    End-to-end walkthrough: deploy a LangGraph ReAct agent to OpenShift,
+    run Garak security scans via EvalHub, interpret attack-success-rate
+    scores, apply NeMo Guardrails to mitigate identified vulnerabilities,
+    re-scan to verify improvement, and reference a probe-to-guardrail
+    remediation map.
+  status: community
+
+  hardware:
+    gpu:
+      required: false
+    cpu:
+      cores: 4
+    memory: "8Gi"
+
+  duration_estimate:
+    setup: "15 minutes"
+    execution: "45 minutes"
+    total: "60 minutes"
+
+  complexity: intermediate
+
+  tags:
+    - evaluation
+    - inference
+
+  components:
+    rhoai:
+      - trustyai
+      - evalhub
