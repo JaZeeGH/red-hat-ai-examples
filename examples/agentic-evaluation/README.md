@@ -2,8 +2,8 @@
 
 A hands-on guide to evaluating AI agents using [MLflow](https://mlflow.org/docs/latest/llms/tracing/index.html) on [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) (RHOAI) for experiment tracking and trace storage. This repo covers 9 failure modes — the ways agents break in production — and teaches you how to detect each one using MLflow scorers (both built-in and custom). A local MLflow server can also be used as an alternative.
 
-- **9 failure mode notebooks** — each focused on one failure mode, showing how to catch it using MLflow's built-in and custom scorers against synthetic traces — no live agent or API keys needed
-- **1 LangGraph evaluation notebook** — builds a real National Parks trip planning agent with LangGraph, traces it with MLflow, and evaluates it across all 9 failure modes using a two-tier scoring strategy (deterministic checks → LLM judges)
+- **9 failure mode notebooks** — each focused on one failure mode, showing how to catch it using MLflow's built-in and custom scorers against synthetic traces. No live agent needed — traces are simulated. An API key is only required for LLM judge scorers (not for trace creation).
+- **1 LangGraph evaluation notebook** — builds a real National Parks trip planning agent with LangGraph, traces it with MLflow, and evaluates it across all 9 failure modes using a two-tier scoring strategy (deterministic checks → LLM judges). Requires an API key for both the agent and the LLM judge scorers.
 
 ## Background
 
@@ -100,7 +100,17 @@ cd examples/agentic-evaluation
 pip install -r requirements.txt
 ```
 
-### 3. Set up environment variables
+### 3. Set up Guardrails AI (for PII detection)
+
+The `DetectPII` scorer (used in the PII Leakage notebook and the LangGraph evaluation notebook) requires additional setup beyond `pip install`:
+
+```bash
+guardrails configure --disable-metrics --disable-remote-inferencing --token ""
+```
+
+On first run, spaCy will download the `en_core_web_lg` model (~400 MB).
+
+### 4. Set up environment variables
 
 Copy the example file and add your API key:
 
@@ -116,7 +126,7 @@ Edit `.env` and set the API key environment variable according to your model pro
 | Anthropic | `ANTHROPIC_API_KEY` | `model="anthropic:/claude-sonnet-5"` |
 | Google | `GOOGLE_API_KEY` | `model="google:/gemini-2.0-flash"` |
 
-### 4. Set up MLflow tracking
+### 5. Set up MLflow tracking
 
 The notebooks read `MLFLOW_TRACKING_URI` and `MLFLOW_EXPERIMENT_NAME` from your `.env` file. Choose one of the two options below.
 
@@ -165,6 +175,8 @@ mlflow server --host 127.0.0.1 --port 5000
 ```
 
 Set `MLFLOW_TRACKING_URI=http://localhost:5000` in your `.env` file. After running a notebook, view traces and evaluation results in the MLflow UI at `http://localhost:5000`.
+
+> **Note:** If port 5000 is unavailable, use any free port (e.g., `--port 5001`) and update `MLFLOW_TRACKING_URI` in `.env` to match.
 
 No code changes are needed — the notebooks read these values from `.env` automatically.
 
