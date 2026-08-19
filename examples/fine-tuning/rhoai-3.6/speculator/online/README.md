@@ -282,7 +282,7 @@ If the job fails because the sidecar did not become ready:
 If the training container runs out of GPU memory:
 
 - Reduce `total_seq_len` to lower memory usage
-- Ensure training and vLLM containers are scheduled on separate GPUs (3 GPUs total required)
+- Ensure training and vLLM containers are scheduled on separate GPUs (minimum 2 GPUs total: 1 training + 1 sidecar)
 - Check that `training_resources` GPU count matches expectations
 - Consider reducing `max_samples` to limit batch sizes
 
