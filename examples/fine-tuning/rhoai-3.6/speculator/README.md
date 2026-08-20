@@ -90,7 +90,7 @@ Which components are deployed depends on the training mode:
 >
 > - `OFFLINE` mode uses an external vLLM server instead of a sidecar — configure its resources separately.
 > - The vLLM sidecar currently supports only 1 GPU.
-> - CPU, memory, and GPU requirements scale with verifier model size. The above values suit the example configuration (Qwen3-1.7B).
+> - CPU, memory, and GPU requirements scale with verifier model size. The above values suit the example configuration (Qwen3-0.6B).
 
 ### Storage Requirements
 
@@ -114,7 +114,7 @@ Which components are deployed depends on the training mode:
   - `TRAIN_ONLY` / `OFFLINE` — Model optimization CTR (training only, no vLLM sidecar)
   - `ONLINE` — Online CTR (includes vLLM sidecar + training in one pod)
 - **External vLLM requirements**: When using an external vLLM endpoint (`DATA_ONLY` Method 2 or `OFFLINE` mode), the vLLM server must be in the **same namespace** and have access to the **same shared PVC** as the TrainJob.
-- **HuggingFace token**: Passed to training pods via the `env` parameter on each trainer. Required for downloading gated models. Qwen3-1.7B is not gated, but a token avoids rate limits.
+- **HuggingFace token**: Passed to training pods via the `env` parameter on each trainer. Required for downloading gated models. Qwen3-0.6B is not gated, but a token avoids rate limits.
 - **Job naming**: Use `options=[Name(name="...")]` to give jobs explicit, predictable names. This makes it easier to monitor logs with `oc logs` and check job status with `trainer_client.get_job()`.
 - **No manual PVC mounts**: Unlike GRPO/SFT TrainJobs, `SpeculativeDecodingTrainer` handles PVC mounting internally via PVC URIs. You do not need `PodTemplateOverrides` for PVC volume mounts.
 

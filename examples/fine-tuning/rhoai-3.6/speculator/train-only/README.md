@@ -4,7 +4,7 @@ This example demonstrates how to train an Eagle3 draft model from pre-extracted 
 
 > **Prerequisite:** This notebook requires hidden states extracted by a completed [DATA_ONLY](../data-only/) run. Run the `data-only/` notebook first.
 
-This example uses **Qwen3-1.7B** as the verifier model and trains from data extracted with the **ultrachat** dataset.
+This example uses **Qwen3-0.6B** as the verifier model and trains from data extracted with the **ultrachat** dataset.
 
 ## When to use TRAIN_ONLY
 
@@ -41,7 +41,7 @@ The draft model is very small (~0.5 GB for an 8B verifier, ~1 GB for a 70B verif
 
 ## Hardware Requirements
 
-The table below shows the **minimum** resources needed with Qwen3-1.7B. The notebook defaults to minimum values with recommended settings in comments.
+The table below shows the **minimum** resources needed with Qwen3-0.6B. The notebook defaults to minimum values with recommended settings in comments.
 
 | Component | GPU (min) | GPU (rec.) | CPU (min) | CPU (rec.) | Memory (min) | Memory (rec.) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -78,8 +78,8 @@ Even though TRAIN_ONLY does not run inference, it still requires the `verifier_m
 
 | Input Type | Example | `target_layer_ids` |
 | --- | --- | --- |
-| **HuggingFace ID** | `"Qwen/Qwen3-1.7B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
-| **PVC URI** | `"pvc://shared/models/Qwen3-1.7B"` | Must be provided explicitly — SDK cannot read model config from PVC |
+| **HuggingFace ID** | `"Qwen/Qwen3-0.6B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
+| **PVC URI** | `"pvc://shared/models/Qwen3-0.6B"` | Must be provided explicitly — SDK cannot read model config from PVC |
 
 The training pods download the model automatically when using a HuggingFace ID. Pass your HuggingFace token via the `env` parameter to authenticate.
 
@@ -249,5 +249,5 @@ If training errors mention layer dimension mismatches:
 If the training container runs out of memory:
 
 - Reduce `total_seq_len` to lower memory usage
-- Ensure `training_resources` has enough GPU memory (64Gi recommended for Qwen3-1.7B)
+- Ensure `training_resources` has enough GPU memory (64Gi recommended for Qwen3-0.6B)
 - Check that no other workloads are competing for GPU resources on the node
