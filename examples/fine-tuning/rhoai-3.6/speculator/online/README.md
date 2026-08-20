@@ -8,7 +8,7 @@ This example demonstrates how to train an Eagle3 draft model using the `ONLINE` 
 
 Hidden states are processed in a streaming fashion -- each batch is extracted, used for training, then discarded. This means disk usage stays constant regardless of dataset size.
 
-This example uses **Qwen3-1.7B** as the verifier model and the `magpie` built-in dataset.
+This example uses **Qwen3-0.6B** as the verifier model and the `magpie` built-in dataset.
 
 ## When to use ONLINE
 
@@ -55,7 +55,7 @@ The CTR must be pre-installed on your cluster. The notebook verifies its existen
 
 ### Hardware Requirements
 
-ONLINE mode requires the most GPUs because both the training container and the vLLM sidecar run simultaneously. The table below shows minimum and recommended resources for Qwen3-1.7B:
+ONLINE mode requires the most GPUs because both the training container and the vLLM sidecar run simultaneously. The table below shows minimum and recommended resources for Qwen3-0.6B:
 
 | Component | GPU (min) | GPU (rec.) | CPU (min) | CPU (rec.) | Memory (min) | Memory (rec.) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -73,10 +73,10 @@ The `verifier_model` parameter specifies the large language model loaded into th
 
 | Input Type | Example | `target_layer_ids` |
 | --- | --- | --- |
-| **HuggingFace ID** | `"Qwen/Qwen3-1.7B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
-| **PVC URI** | `"pvc://shared/models/Qwen3-1.7B"` | Must be provided explicitly — SDK cannot read model config from PVC |
+| **HuggingFace ID** | `"Qwen/Qwen3-0.6B"` | Auto-computed as `[2, n//2, n-3, n]` where `n` is the number of hidden layers |
+| **PVC URI** | `"pvc://shared/models/Qwen3-0.6B"` | Must be provided explicitly — SDK cannot read model config from PVC |
 
-When using a HuggingFace ID, the training pods download the model automatically during the job. Pass your HuggingFace token via the `env` parameter (`{"HF_TOKEN": HF_TOKEN}`) to authenticate, especially for gated models. Even for non-gated models like Qwen3-1.7B, a token is recommended to avoid rate limits.
+When using a HuggingFace ID, the training pods download the model automatically during the job. Pass your HuggingFace token via the `env` parameter (`{"HF_TOKEN": HF_TOKEN}`) to authenticate, especially for gated models. Even for non-gated models like Qwen3-0.6B, a token is recommended to avoid rate limits.
 
 Direct filesystem paths (e.g., `/mnt/models/...`) are **not supported** — training runs inside Kubernetes pods where local paths from the user's machine do not exist.
 
@@ -101,7 +101,7 @@ Eagle3 reads hidden states from exactly **4 intermediate layers** of the verifie
 - **Late layer** — captures high-level reasoning
 - **Final layer** — provides the target distribution for training
 
-For Qwen3-1.7B (28 hidden layers), the auto-computed formula `[2, n//2, n-3, n]` gives `[2, 14, 25, 28]`.
+For Qwen3-0.6B (28 hidden layers), the auto-computed formula `[2, n//2, n-3, n]` gives `[2, 14, 25, 28]`.
 
 When using a PVC URI for `verifier_model`, you **must** provide `target_layer_ids` explicitly via `SpeculatorConfig(target_layer_ids=[...])` because the SDK cannot access the model configuration file from the PVC at validation time. The SDK validates that exactly 4 IDs are provided — fewer or more raises a `ValueError`.
 
@@ -264,7 +264,7 @@ oc logs <pod-name> -c vllm-sidecar
 
 Common fixes:
 
-- Increase `memory` in `vllm_resources` (96Gi is recommended for Qwen3-1.7B)
+- Increase `memory` in `vllm_resources` (96Gi is recommended for Qwen3-0.6B)
 - Ensure the GPU type supports the model size (Ampere-based or newer recommended)
 - Verify the HuggingFace model ID is correct and accessible with your token
 - The vLLM sidecar supports only **1 GPU** — if you specified more, you will get a `ValueError`
