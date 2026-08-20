@@ -133,7 +133,7 @@ The example notebooks demonstrate common configurations for each training mode. 
 | `verifier_model` | HuggingFace ID or PVC URI | The base LLM used for hidden state extraction and as the reference model during training. When using a HuggingFace ID, the SDK downloads the model and auto-detects `target_layer_ids`. When using a PVC URI, `target_layer_ids` must be set explicitly. | All |
 | `output_dir` | PVC URI | Directory where training checkpoints and the final draft model are saved. | All |
 | `dataset_name` | Built-in name, HuggingFace ID, or PVC URI | The dataset for data preprocessing and hidden state extraction. Built-in names: `ultrachat`, `magpie`, `gsm8k`. Also accepts HuggingFace dataset IDs or PVC URIs pointing to `.json`/`.jsonl` files. | DATA_ONLY, OFFLINE, ONLINE |
-| `hidden_states_path` | PVC URI | Path to the directory containing pre-extracted hidden state `.safetensors` files from a prior DATA_ONLY run. | TRAIN_ONLY, OFFLINE |
+| `hidden_states_path` | PVC URI | Directory for hidden state `.safetensors` files. **DATA_ONLY**: output — extracted states are written here. **TRAIN_ONLY**: input — reads states from a prior DATA_ONLY run. **OFFLINE**: output then input — states are extracted and consumed within the same job. | DATA_ONLY, TRAIN_ONLY, OFFLINE |
 | `target_layer_ids` | List of 4 integers | Which transformer layers to extract hidden states from. Auto-computed as `[2, n//2, n-3, n]` when using a HuggingFace model ID. Must be provided explicitly when using a PVC URI. Exactly 4 IDs required. Set via `SpeculatorConfig`. | All |
 
 ### Resource Parameters
