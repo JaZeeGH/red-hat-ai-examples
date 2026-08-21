@@ -16,7 +16,7 @@ This example uses **Qwen3-0.6B** as the verifier model and the `magpie` built-in
 | --- | --- | --- | --- |
 | [DATA_ONLY](../data-only/) | Extract once, experiment many times | Managed sidecar or external | Low |
 | [TRAIN_ONLY](../train-only/) | Iterate on hyperparameters without re-extracting | None | Low |
-| [OFFLINE](../offline/) | Reuse an existing vLLM deployment | External (user-managed) | Moderate |
+| [OFFLINE](../offline/) | Reuse an existing vLLM deployment | External (self-managed) | Moderate |
 | **ONLINE (this example)** | Simplest end-to-end path | Managed sidecar | Simplest |
 
 ONLINE mode is the recommended starting point when you want the simplest possible experience. Everything is handled in one job — the SDK deploys the vLLM sidecar, extracts hidden states, trains the draft model, and saves the result. No external infrastructure is required beyond the cluster itself.
@@ -49,7 +49,7 @@ Navigate to `examples/fine-tuning/rhoai-3.6/speculator/online` and open `specula
 
 ### ClusterTrainingRuntime (CTR)
 
-ONLINE mode uses the `vllm-extract-cuda` CTR, which provisions both the training container and the vLLM sidecar in a single pod. This is the same CTR used by DATA_ONLY Method 1 — it includes both the training runtime and the vLLM serving runtime.
+ONLINE mode uses the `vllm-extract-cuda` CTR, which provisions both the training container and the vLLM sidecar in a single pod. This is the same CTR used by DATA_ONLY with Managed Sidecar — it includes both the training runtime and the vLLM serving runtime.
 
 The CTR must be pre-installed on your cluster. The notebook verifies its existence before job submission.
 
@@ -87,8 +87,7 @@ The `dataset_name` parameter specifies which dataset to use for hidden state ext
 | Input Type | Example | Description |
 | --- | --- | --- |
 | **Built-in name** | `"ultrachat"`, `"magpie"`, `"gsm8k"` | Downloaded automatically during the job |
-| **HuggingFace dataset ID** | `"HuggingFaceH4/ultrachat_200k"` | Downloaded from HuggingFace Hub |
-| **PVC URI** | `"pvc://shared/datasets/custom.jsonl"` | User-provided JSON/JSONL file on the PVC — no network access needed |
+| **PVC URI** | `"pvc://shared/datasets/custom.jsonl"` | Self-provided JSON/JSONL file on the PVC — requires `regenerate_responses=False` |
 
 The `max_samples` parameter caps how many samples are processed. The `total_seq_len` parameter sets the maximum sequence length for tokenization.
 
@@ -215,7 +214,7 @@ Open `speculator-online-example.ipynb` and follow the notebook, which walks you 
 | `mode` | `SpeculatorMode.ONLINE` | Must be set to `ONLINE` for this mode |
 | `speculator_type` | `SpeculatorType.EAGLE3` | Draft model architecture (currently only Eagle3 is supported) |
 | `verifier_model` | String | HuggingFace model ID or PVC URI of the verifier model |
-| `dataset_name` | String | Built-in name (`ultrachat`, `magpie`, `gsm8k`), HuggingFace dataset ID, or PVC URI to a `.json`/`.jsonl` file |
+| `dataset_name` | String | Built-in name (`ultrachat`, `magpie`, `gsm8k`) or PVC URI to a `.json`/`.jsonl` file |
 | `max_samples` | Integer | Maximum number of dataset samples to process |
 | `total_seq_len` | Integer | Maximum sequence length |
 | `vllm_resources` | Dict | GPU/CPU/memory for the managed vLLM sidecar (sidecar limited to **1 GPU**) |
