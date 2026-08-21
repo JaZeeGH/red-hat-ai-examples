@@ -12,7 +12,7 @@ This example uses **Qwen3-0.6B** as the verifier model and trains from data extr
 | --- | --- | --- | --- |
 | [DATA_ONLY](../data-only/) | Extract once, experiment many times | Managed sidecar or external | Low |
 | **TRAIN_ONLY (this example)** | Iterate on hyperparameters without re-extracting | None | Low |
-| [OFFLINE](../offline/) | Reuse an existing vLLM deployment | External (user-managed) | Moderate |
+| [OFFLINE](../offline/) | Reuse an existing vLLM deployment | External (self-managed) | Moderate |
 | [ONLINE](../online/) | Simplest end-to-end path | Managed sidecar | Simplest |
 
 TRAIN_ONLY is designed for the second step of a two-step workflow. After extracting hidden states once with DATA_ONLY, you can run TRAIN_ONLY repeatedly with different hyperparameters (learning rate, epochs, scheduler, architecture choices) without re-running the expensive extraction step. This makes hyperparameter tuning significantly faster and cheaper.
@@ -37,7 +37,7 @@ Only the draft model's small components are trained — the verifier model is fr
 - **FC layer 2 (concat):** Merges the fused hidden state with the previous token's embedding
 - **One Transformer decoder layer:** Predicts the next token probability distribution
 
-The draft model is very small (~0.5 GB for an 8B verifier, ~1 GB for a 70B verifier), making training fast and memory-efficient.
+The draft model is very small (~1.2 GB with Qwen3-0.6B), making training fast and memory-efficient.
 
 ## Hardware Requirements
 
@@ -68,7 +68,7 @@ Before running TRAIN_ONLY, ensure:
 
 ### ClusterTrainingRuntime (CTR)
 
-TRAIN_ONLY mode uses the `speculator-model-opt-cuda` CTR. This CTR provisions only the training container — no vLLM sidecar is included since TRAIN_ONLY works entirely from pre-extracted hidden states. This is the same CTR used by OFFLINE mode and DATA_ONLY Method 2.
+TRAIN_ONLY mode uses the `speculator-model-opt-cuda` CTR. This CTR provisions only the training container — no vLLM sidecar is included since TRAIN_ONLY works entirely from pre-extracted hidden states. This is the same CTR used by OFFLINE mode and DATA_ONLY with External vLLM.
 
 The CTR must be pre-installed on your cluster. The notebook verifies its existence before job submission.
 

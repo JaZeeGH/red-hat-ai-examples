@@ -15,12 +15,12 @@ This example uses **Qwen3-0.6B** as the verifier model and the `ultrachat` built
 | --- | --- | --- | --- |
 | **DATA_ONLY (this example)** | Extract once, experiment many times | Managed sidecar or external | Low |
 | [TRAIN_ONLY](../train-only/) | Iterate on hyperparameters without re-extracting | None | Low |
-| [OFFLINE](../offline/) | Reuse an existing vLLM deployment | External (user-managed) | Moderate |
+| [OFFLINE](../offline/) | Reuse an existing vLLM deployment | External (self-managed) | Moderate |
 | [ONLINE](../online/) | Simplest end-to-end path | Managed sidecar | Simplest |
 
 DATA_ONLY is the recommended first step when you plan to experiment with training hyperparameters. Hidden state extraction is the most expensive operation — it requires loading the full verifier model into GPU memory and processing every dataset sample through a forward pass. By extracting once and saving the results to the PVC, you can run dozens of TRAIN_ONLY experiments (varying learning rate, epochs, sequence length, etc.) without repeating the extraction cost.
 
-**Trade-off:** DATA_ONLY + TRAIN_ONLY requires two separate jobs and more disk space (hidden states are persisted), but saves significant GPU time when iterating. If you only need a single training run, consider [ONLINE](../online/) mode instead.
+**Trade-off:** DATA_ONLY + TRAIN_ONLY requires two separate jobs and more disk space (hidden states are persisted), but saves significant GPU time when iterating. If you only need a single training run, consider [ONLINE](../online/) or [OFFLINE](../offline/) mode instead.
 
 ## How DATA_ONLY Works
 
@@ -165,8 +165,7 @@ The `dataset_name` parameter specifies which dataset to use for hidden state ext
 | Input Type | Example | Description |
 | --- | --- | --- |
 | **Built-in name** | `"ultrachat"`, `"magpie"`, `"gsm8k"` | Downloaded automatically during extraction |
-| **HuggingFace dataset ID** | `"HuggingFaceH4/ultrachat_200k"` | Downloaded from HuggingFace Hub |
-| **PVC URI** | `"pvc://shared/datasets/custom.jsonl"` | User-provided JSON/JSONL file on the PVC — no network access needed |
+| **PVC URI** | `"pvc://shared/datasets/custom.jsonl"` | Self-provided JSON/JSONL file on the PVC — requires `regenerate_responses=False` |
 
 The `max_samples` parameter caps how many samples are processed. The `total_seq_len` parameter sets the maximum sequence length for tokenization — longer sequences capture more context but require more GPU memory and disk space for the hidden states.
 
@@ -232,7 +231,7 @@ Run the cells for **one or both methods** depending on your setup. Both methods 
 | `mode` | — | `SpeculatorMode.DATA_ONLY` | Must be set to `DATA_ONLY` for this mode |
 | `speculator_type` | — | `SpeculatorType.EAGLE3` | Draft model architecture (currently only Eagle3 is supported) |
 | `verifier_model` | — | String | HuggingFace model ID or PVC URI of the verifier model |
-| `dataset_name` | — | String | Built-in name (`ultrachat`, `magpie`, `gsm8k`), HuggingFace dataset ID, or PVC URI to a `.json`/`.jsonl` file |
+| `dataset_name` | — | String | Built-in name (`ultrachat`, `magpie`, `gsm8k`) or PVC URI to a `.json`/`.jsonl` file |
 | `max_samples` | — | Integer | Maximum number of dataset samples to process |
 | `total_seq_len` | — | Integer | Maximum sequence length for tokenization |
 | `output_dir` | — | PVC URI | Directory where output files are saved |
@@ -292,9 +291,13 @@ Common fixes:
 If no `.safetensors` files appear in the output directory:
 
 - Verify `target_layer_ids` match the verifier model architecture (exactly 4 IDs required)
-- Check that `dataset_name` is valid and accessible
-- Review the job logs for data processing errors
-- If using a PVC URI dataset, verify the file exists and is valid JSON/JSONL
+- Check that `dataset_name` is valid and accessible:
+  - Built-in names: `ultrachat`, `magpie`, `gsm8k`
+  - PVC URIs must end with `.json` or `.jsonl`
+- Ensure vLLM endpoint became ready (check `vllm_readiness_timeout_minutes` if model is large)
+- Verify preprocessing completed successfully (check logs for "Preprocessing dataset" messages)
+- If `regenerate_responses=True`, ensure you are using a built-in dataset (not a PVC URI)
+- Check that the incomplete marker file (`.extraction_incomplete.rank-*`) was removed after completion
 
 ### CTR not found on cluster
 

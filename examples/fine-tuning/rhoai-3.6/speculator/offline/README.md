@@ -1,6 +1,6 @@
-# Offline Mode (User-Managed vLLM) with SpeculativeDecodingTrainer
+# Offline Mode (Self-Managed vLLM) with SpeculativeDecodingTrainer
 
-This example demonstrates how to train an Eagle3 draft model using the `OFFLINE` mode of `SpeculativeDecodingTrainer`. This mode connects to an external, user-managed vLLM server to extract hidden states, then trains the draft model -- all within a single job.
+This example demonstrates how to train an Eagle3 draft model using the `OFFLINE` mode of `SpeculativeDecodingTrainer`. This mode connects to an external, self-managed vLLM server to extract hidden states, then trains the draft model -- all within a single job.
 
 This is useful when you already have a vLLM deployment running (e.g., as an OpenShift AI model serving instance) and want to reuse it for hidden state extraction instead of having the SDK deploy a sidecar.
 
@@ -12,7 +12,7 @@ This example uses **Qwen3-0.6B** as the verifier model and the `magpie` built-in
 | --- | --- | --- | --- |
 | [DATA_ONLY](../data-only/) | Extract once, experiment many times | Managed sidecar or external | Low |
 | [TRAIN_ONLY](../train-only/) | Iterate on hyperparameters without re-extracting | None | Low |
-| **OFFLINE (this example)** | Reuse an existing vLLM deployment | External (user-managed) | Moderate |
+| **OFFLINE (this example)** | Reuse an existing vLLM deployment | External (self-managed) | Moderate |
 | [ONLINE](../online/) | Simplest end-to-end path | Managed sidecar | Simplest |
 
 OFFLINE mode is the right choice when you already have a vLLM server running and want a single-job workflow that handles both extraction and training. Unlike ONLINE mode, the SDK does **not** manage the vLLM lifecycle — you deploy, configure, and tear down the vLLM server yourself.
@@ -21,7 +21,7 @@ OFFLINE mode is the right choice when you already have a vLLM server running and
 
 - **vs. ONLINE:** OFFLINE gives you full control over the vLLM server configuration (quantization, tensor parallelism, custom flags) but requires you to manage the server lifecycle separately.
 - **vs. DATA_ONLY + TRAIN_ONLY:** OFFLINE runs both steps in one job (simpler to submit), but you cannot reuse the extracted data for multiple training runs with different hyperparameters without re-running extraction.
-- **vs. DATA_ONLY Method 2:** DATA_ONLY Method 2 also uses an external vLLM endpoint, but only extracts hidden states — no training. OFFLINE does both extraction and training in a single job.
+- **vs. DATA_ONLY with External vLLM:** DATA_ONLY with External vLLM also uses an external vLLM endpoint, but only extracts hidden states — no training. OFFLINE does both extraction and training in a single job.
 
 ## How OFFLINE Works
 
@@ -45,7 +45,7 @@ The table below shows the **minimum** resources needed with Qwen3-0.6B. The note
 | External vLLM server | 1 | 1 | 1 core | 4 cores | 48Gi | 96Gi |
 
 - 1 training GPU works but is slower — 2 GPUs enable data-parallel training
-- The external vLLM server is user-managed — its resources are separate from the TrainJob
+- The external vLLM server is self-managed — its resources are separate from the TrainJob
 
 ## Setup
 
@@ -74,7 +74,7 @@ Before running this notebook, you must have a vLLM server running that:
 
 ### ClusterTrainingRuntime (CTR)
 
-OFFLINE mode uses the `speculator-model-opt-cuda` CTR. This CTR provisions only the training container — no vLLM sidecar is included since you manage the vLLM server externally. This is the same CTR used by TRAIN_ONLY mode and DATA_ONLY Method 2.
+OFFLINE mode uses the `speculator-model-opt-cuda` CTR. This CTR provisions only the training container — no vLLM sidecar is included since you manage the vLLM server externally. This is the same CTR used by TRAIN_ONLY mode and DATA_ONLY with External vLLM.
 
 The CTR must be pre-installed on your cluster. The notebook verifies its existence before job submission.
 
@@ -98,8 +98,7 @@ The `dataset_name` parameter specifies which dataset to use for hidden state ext
 | Input Type | Example | Description |
 | --- | --- | --- |
 | **Built-in name** | `"ultrachat"`, `"magpie"`, `"gsm8k"` | Downloaded automatically during extraction |
-| **HuggingFace dataset ID** | `"HuggingFaceH4/ultrachat_200k"` | Downloaded from HuggingFace Hub |
-| **PVC URI** | `"pvc://shared/datasets/custom.jsonl"` | User-provided JSON/JSONL file on the PVC — no network access needed |
+| **PVC URI** | `"pvc://shared/datasets/custom.jsonl"` | Self-provided JSON/JSONL file on the PVC — requires `regenerate_responses=False` |
 
 The `max_samples` parameter caps how many samples are processed. The `total_seq_len` parameter sets the maximum sequence length for tokenization.
 
@@ -233,7 +232,7 @@ Open `speculator-offline-example.ipynb` and follow the notebook, which walks you
 | `mode` | `SpeculatorMode.OFFLINE` | Must be set to `OFFLINE` for this mode |
 | `speculator_type` | `SpeculatorType.EAGLE3` | Draft model architecture (currently only Eagle3 is supported) |
 | `verifier_model` | String | HuggingFace model ID or PVC URI of the verifier model |
-| `dataset_name` | String | Built-in name (`ultrachat`, `magpie`, `gsm8k`), HuggingFace dataset ID, or PVC URI to a `.json`/`.jsonl` file |
+| `dataset_name` | String | Built-in name (`ultrachat`, `magpie`, `gsm8k`) or PVC URI to a `.json`/`.jsonl` file |
 | `max_samples` | Integer | Maximum number of dataset samples to process |
 | `total_seq_len` | Integer | Maximum sequence length |
 | `vllm_endpoint` | URL string | External vLLM server URL (required for OFFLINE) |
