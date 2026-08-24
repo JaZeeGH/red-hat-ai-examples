@@ -58,7 +58,7 @@ Navigate to `examples/fine-tuning/rhoai-3.6/speculator/offline` and open `specul
 Before running this notebook, you must have a vLLM server running that:
 
 - Serves the **same verifier model** (Qwen3-0.6B) used in training
-- Exposes the OpenAI-compatible API (typically at port 8000, path `/v1`)
+- Exposes the vLLM HTTP API (typically at port 8000, path `/v1`)
 - Is accessible from the training pods (e.g., via a Kubernetes service URL)
 - Is in the **same namespace** and has access to the **same shared PVC** as the TrainJob — hidden states are written to the PVC and both the training job and vLLM server must see the same filesystem
 
@@ -222,6 +222,16 @@ Open `speculator-offline-example.ipynb` and follow the notebook, which walks you
 5. **Submitting the TrainJob** -- Launch the job on the cluster
 6. **Monitoring progress** -- Check job status and view logs
 7. **Cleanup** -- Delete the TrainJob when complete
+
+## Checking Supported Parameters
+
+> [!NOTE]
+>
+> The examples above cover the most common parameters for OFFLINE mode. For a complete list of all supported parameters and their defaults:
+>
+> - **Notebook reference**: The `speculator-offline-example.ipynb` notebook shows the parameters used for extraction and training configuration
+> - **SDK documentation**: See the [main README](../README.md#parameter-reference) for complete parameter documentation and mode applicability matrix
+> - **SDK source**: For authoritative signatures, install the Kubeflow SDK and inspect the `SpeculativeDecodingTrainer` class
 
 ## Full Parameter Reference
 

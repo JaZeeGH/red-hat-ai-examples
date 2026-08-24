@@ -144,6 +144,7 @@ The example notebooks demonstrate common configurations for each training mode. 
 | `verifier_model` | HuggingFace ID or PVC URI | The base LLM used for hidden state extraction and as the reference model during training. When using a HuggingFace ID, the SDK downloads the model and auto-detects `target_layer_ids`. When using a PVC URI, `target_layer_ids` must be set explicitly. | All |
 | `output_dir` | PVC URI | Directory where training checkpoints and the final draft model are saved. | All |
 | `dataset_name` | Built-in name or PVC URI | The dataset for data preprocessing and hidden state extraction. Built-in names: `ultrachat`, `magpie`, `gsm8k`. Also accepts PVC URIs pointing to `.json`/`.jsonl` files. | DATA_ONLY, OFFLINE, ONLINE |
+| `data_path` | PVC URI | Path to the preprocessed dataset directory from a DATA_ONLY run. Used by TRAIN_ONLY to load tokenized and formatted dataset files for training without re-preprocessing. | TRAIN_ONLY |
 | `hidden_states_path` | PVC URI | Directory for hidden state `.safetensors` files. **DATA_ONLY**: output — extracted states are written here. **TRAIN_ONLY**: input — reads states from a prior DATA_ONLY run. **OFFLINE**: output then input — states are extracted and consumed within the same job. When using an external vLLM server, ensure its `hidden_states_path` matches the path configured in the training job. | DATA_ONLY, TRAIN_ONLY, OFFLINE |
 
 ### Resource Parameters
@@ -198,6 +199,26 @@ These parameters are set directly on `SpeculativeDecodingTrainer(...)`:
 | `packages_to_install` | `None` | list[str] \| None | Additional Python packages to install in the training pod. | All |
 | `pip_index_urls` | SDK defaults | list[str] | PyPI index URLs for package installation. | All |
 | `env` | `None` | dict \| None | Environment variables passed to training pods (e.g., `{"HF_TOKEN": "..."}`). | All |
+| `mode` | Required | SpeculatorMode enum | Training mode: `DATA_ONLY`, `TRAIN_ONLY`, `OFFLINE`, or `ONLINE` | All |
+| `speculator_type` | Required | SpeculatorType enum | Draft model type: currently only `EAGLE3` is supported | All |
+
+### SpeculatorConfig Parameters (nested in `config` parameter)
+
+| Parameter | Default | Type | Description | Modes |
+| --- | --- | --- | --- | --- |
+| `num_layers` | `1` | int | Number of Transformer decoder layers in the draft model | TRAIN_ONLY, OFFLINE, ONLINE |
+| `ttt_steps` | `3` | int | Test-time training steps per batch | TRAIN_ONLY, OFFLINE, ONLINE |
+| `norm_before_residual` | `True` | bool | Apply LayerNorm before the residual connection | TRAIN_ONLY, OFFLINE, ONLINE |
+| `scheduler_type` | `"linear"` | str | Learning rate scheduler: `"linear"`, `"cosine"`, or `"none"` | TRAIN_ONLY, OFFLINE, ONLINE |
+| `checkpoint_freq` | `1.0` | float | Save a checkpoint every N epochs | TRAIN_ONLY, OFFLINE, ONLINE |
+| `save_best` | `False` | bool | Save only the best checkpoint by validation loss | TRAIN_ONLY, OFFLINE, ONLINE |
+| `log_freq` | `1` | int | Logging frequency in training steps | TRAIN_ONLY, OFFLINE, ONLINE |
+| `datagen_concurrency` | `4` | int | Number of concurrent data generation / extraction workers | DATA_ONLY, OFFLINE, ONLINE |
+| `hidden_states_dtype` | `"bfloat16"` | str | Data type for saved tensors: `"bfloat16"`, `"float16"`, or `"float32"` | DATA_ONLY, OFFLINE |
+| `draft_vocab_size` | Auto | int \| None | Draft model vocabulary size; auto-computed from dataset frequency if not set | DATA_ONLY, OFFLINE, ONLINE |
+| `embed_requires_grad` | `False` | bool | Whether to allow gradient updates on the embedding layer (not recommended) | All |
+| `norm_before_fc` | `False` | bool | Apply LayerNorm before the FC fusion layer (model-specific) | TRAIN_ONLY, OFFLINE, ONLINE |
+| `resume_from_checkpoint` | `False` | bool | Resume training from the last saved checkpoint. Restores model weights, optimizer state, and epoch count. | TRAIN_ONLY, OFFLINE, ONLINE |
 
 ### Mode–Parameter Applicability Matrix
 
@@ -213,6 +234,25 @@ These parameters are set directly on `SpeculativeDecodingTrainer(...)`:
 | `vllm_endpoint` | Required (External vLLM) | Not used | Required | Not used |
 | `resume_from_checkpoint` | Not applicable | Yes | Yes | Yes |
 | `regenerate_responses` | Yes | Not applicable | Yes | Yes |
+
+## Checking Supported SDK Parameters
+
+The parameter reference sections above cover all parameters used in the examples. For a complete, authoritative list of all supported parameters and their defaults:
+
+1. **SDK Repository**: The authoritative source is the [Kubeflow SDK GitHub repository](https://github.com/opendatahub-io/kubeflow-sdk). The `SpeculativeDecodingTrainer` class in `kubeflow/trainer/rhai/speculator.py` defines the full parameter signature.
+
+2. **Notebook examples**: Each mode notebook shows the parameters used for that mode in the trainer configuration cell. These are practical examples of common configurations.
+
+3. **Runtime inspection**: After installing the Kubeflow SDK, inspect the parameter signature:
+
+   ```python
+   from kubeflow.trainer.rhai import SpeculativeDecodingTrainer
+   import inspect
+
+   print(inspect.signature(SpeculativeDecodingTrainer.__init__))
+   ```
+
+Parameters not shown in the examples can still be passed to `SpeculativeDecodingTrainer(...)` — check the SDK source or runtime signature to see defaults, types, and descriptions.
 
 ## Setup
 

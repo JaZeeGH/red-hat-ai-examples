@@ -184,6 +184,16 @@ TRAIN_ONLY's main advantage is fast iteration. Here are common experiments to tr
 
 For each experiment, change `RUN_NAME` (or `output_dir`) to keep results separate on the PVC. All experiments reuse the same hidden state data from your DATA_ONLY run.
 
+## Checking Supported Parameters
+
+> [!NOTE]
+>
+> The examples above cover the most common parameters for TRAIN_ONLY mode. For a complete list of all supported parameters and their defaults:
+>
+> - **Notebook reference**: The `speculator-train-only-example.ipynb` notebook shows the parameters used for training configuration
+> - **SDK documentation**: See the [main README](../README.md#parameter-reference) for complete parameter documentation and mode applicability matrix
+> - **SDK source**: For authoritative signatures, install the Kubeflow SDK and inspect the `SpeculativeDecodingTrainer` class
+
 ## Full Parameter Reference
 
 ### SpeculativeDecodingTrainer Parameters

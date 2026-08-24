@@ -205,6 +205,16 @@ Open `speculator-online-example.ipynb` and follow the notebook, which walks you 
 5. **Monitoring progress** -- Check job status and view logs
 6. **Cleanup** -- Delete the TrainJob when complete
 
+## Checking Supported Parameters
+
+> [!NOTE]
+>
+> The examples above cover the most common parameters for ONLINE mode. For a complete list of all supported parameters and their defaults:
+>
+> - **Notebook reference**: The `speculator-online-example.ipynb` notebook shows the parameters used for extraction and training configuration
+> - **SDK documentation**: See the [main README](../README.md#parameter-reference) for complete parameter documentation and mode applicability matrix
+> - **SDK source**: For authoritative signatures, install the Kubeflow SDK and inspect the `SpeculativeDecodingTrainer` class
+
 ## Full Parameter Reference
 
 ### SpeculativeDecodingTrainer Parameters

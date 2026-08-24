@@ -131,7 +131,7 @@ data_only_external = SpeculativeDecodingTrainer(
 Before running this method, you must have a vLLM server running that:
 
 - Serves the **same verifier model** (Qwen3-0.6B) used in the extraction configuration
-- Exposes the OpenAI-compatible API (typically at port 8000, path `/v1`)
+- Exposes the vLLM HTTP API (typically at port 8000, path `/v1`)
 - Is accessible from the extraction pods (e.g., via a Kubernetes service URL)
 - Is in the **same namespace** and has access to the **same shared PVC** as the TrainJob — hidden states are written to the PVC and both the extraction job and vLLM server must see the same filesystem
 
@@ -208,6 +208,16 @@ pvc://shared/speculator/run-01-data/
 ```
 
 The `hidden_states/` directory is the input for a subsequent [TRAIN_ONLY](../train-only/) run. Point the TRAIN_ONLY trainer's `hidden_states_path` to this directory.
+
+## Checking Supported Parameters
+
+> [!NOTE]
+>
+> The examples above cover the most common parameters for DATA_ONLY mode. For a complete list of all supported parameters and their defaults:
+>
+> - **Notebook reference**: The `speculator-data-only-example.ipynb` notebook shows the parameters used for both extraction methods
+> - **SDK documentation**: See the [main README](../README.md#parameter-reference) for complete parameter documentation and mode applicability matrix
+> - **SDK source**: For authoritative signatures, install the Kubeflow SDK and inspect the `SpeculativeDecodingTrainer` class
 
 ## Running the Example
 
