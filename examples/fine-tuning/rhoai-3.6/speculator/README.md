@@ -206,7 +206,7 @@ These parameters are set directly on `SpeculativeDecodingTrainer(...)`:
 | `verifier_model` | Required | Required | Required | Required |
 | `output_dir` | Required | Required | Required | Required |
 | `dataset_name` | Required | Not used | Required | Required |
-| `hidden_states_path` | Output | Required | Required | Output |
+| `hidden_states_path` | Output | Required | Required | Not applicable |
 | `target_layer_ids` | Auto or explicit | Auto or explicit | Auto or explicit | Auto or explicit |
 | `training_resources` | Not used | Required | Required | Required |
 | `vllm_resources` | Required (Managed Sidecar) | Not used | Not used | Required |
