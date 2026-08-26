@@ -50,7 +50,7 @@ class InteractiveChat:
             current_role = delta.get("role")
 
             # Check if we need to print a new header
-            if current_role != self._last_role:
+            if current_role and current_role != self._last_role:
                 display_names = {
                     "tool_answer": "Answer from tool",
                     "assistant_answer": "Assistant answer",

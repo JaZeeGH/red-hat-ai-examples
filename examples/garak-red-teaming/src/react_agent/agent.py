@@ -38,6 +38,10 @@ def get_graph_closure(
         raise ValueError(
             "BASE_URL is required. Set it via argument or BASE_URL env var."
         )
+    if not model_id:
+        raise ValueError(
+            "MODEL_ID is required. Set it via argument or MODEL_ID env var."
+        )
     is_local = any(host in base_url for host in ["localhost", "127.0.0.1"])
 
     if not is_local and not api_key:

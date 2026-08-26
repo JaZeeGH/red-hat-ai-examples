@@ -14,6 +14,7 @@ metadata:
     cpu:
       cores: 4
     memory: "8Gi"
+    multi_node: false
 
   duration_estimate:
     setup: "15 minutes"
@@ -28,5 +29,4 @@ metadata:
 
   components:
     rhoai:
-      - trustyai
-      - evalhub
+      - model-serving

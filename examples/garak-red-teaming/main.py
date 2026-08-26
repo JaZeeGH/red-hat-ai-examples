@@ -369,9 +369,8 @@ async def _handle_chat(messages: list[HumanMessage], model_id: str) -> dict[str,
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error processing request: {str(e)}"
-        ) from e
+        logger.exception("Error processing chat request")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 async def _handle_stream(
