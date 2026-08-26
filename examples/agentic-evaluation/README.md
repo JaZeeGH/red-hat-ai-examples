@@ -2,8 +2,8 @@
 
 A hands-on guide to evaluating AI agents using [MLflow](https://mlflow.org/docs/latest/llms/tracing/index.html) on [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) (RHOAI) for experiment tracking and trace storage. This repo covers 9 failure modes — the ways agents break in production — and teaches you how to detect each one using MLflow scorers (both built-in and custom). A local MLflow server can also be used as an alternative.
 
-- **9 failure mode notebooks** — each focused on one failure mode, showing how to catch it using MLflow's built-in and custom scorers against synthetic traces — no live agent or API keys needed
-- **1 end-to-end notebook** — builds a real National Parks trip planning agent with LangGraph, traces it with MLflow, and evaluates it across all 9 failure modes using a two-tier scoring strategy (deterministic checks → LLM judges)
+- **9 failure mode notebooks** — each focused on one failure mode, showing how to catch it using MLflow's built-in and custom scorers against synthetic traces. No live agent needed — traces are simulated. An API key is only required for LLM judge scorers (not for trace creation).
+- **1 LangGraph evaluation notebook** — builds a real National Parks trip planning agent with LangGraph, traces it with MLflow, and evaluates it across all 9 failure modes using a two-tier scoring strategy (deterministic checks → LLM judges). Requires an API key for both the agent and the LLM judge scorers.
 
 ## Background
 
@@ -68,7 +68,7 @@ Each notebook in this repo demonstrates scorers — some with expectations, some
 
 These notebooks use synthetic traces to demonstrate how each scorer works — hardcoded mock functions that produce the same trace structure a real agent would, with predetermined tool calls and responses. No LLM or API keys are needed to create them.
 
-With a real agent, you would skip trace creation entirely — MLflow's autolog captures traces automatically, and you'd run the same scorers against those real traces. The [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) demonstrates exactly this — it builds a real National Parks trip planning agent with LangGraph, traces it with `mlflow.langchain.autolog()`, and evaluates the traces across all 9 failure modes.
+With a real agent, you would skip trace creation entirely — MLflow's autolog captures traces automatically, and you'd run the same scorers against those real traces. The [LangGraph notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) demonstrates exactly this — it builds a real National Parks trip planning agent with LangGraph, traces it with `mlflow.langchain.autolog()`, and evaluates the traces across all 9 failure modes.
 
 ### How to use these notebooks
 
@@ -82,7 +82,7 @@ Every notebook follows the same structure:
 4. **Evaluate** — runs one or more scorers against the traces and prints results
 5. **Interpret** — explains what the scores mean and when to use each scorer
 
-The notebooks can be run in any order, but there's a natural learning path: notebooks 1–4 use existing MLflow scorers (built-in and third-party integrations), then notebooks 5–9 introduce custom scorers built with `@scorer` and `make_judge()`. After working through the failure modes, the [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) brings them all together — evaluating a real agent across all 9 failure modes with a two-tier scoring strategy.
+The notebooks can be run in any order, but there's a natural learning path: notebooks 1–4 use existing MLflow scorers (built-in and third-party integrations), then notebooks 5–9 introduce custom scorers built with `@scorer` and `make_judge()`. After working through the failure modes, the [LangGraph notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) brings them all together — evaluating a real agent across all 9 failure modes with a two-tier scoring strategy.
 
 ## Setup
 
@@ -100,7 +100,17 @@ cd examples/agentic-evaluation
 pip install -r requirements.txt
 ```
 
-### 3. Set up environment variables
+### 3. Set up Guardrails AI (for PII detection)
+
+The `DetectPII` scorer (used in the PII Leakage notebook and the LangGraph evaluation notebook) requires additional setup beyond `pip install`:
+
+```bash
+guardrails configure --disable-metrics --disable-remote-inferencing --token ""
+```
+
+On first run, spaCy will download the `en_core_web_lg` model (~400 MB).
+
+### 4. Set up environment variables
 
 Copy the example file and add your API key:
 
@@ -116,7 +126,7 @@ Edit `.env` and set the API key environment variable according to your model pro
 | Anthropic | `ANTHROPIC_API_KEY` | `model="anthropic:/claude-sonnet-5"` |
 | Google | `GOOGLE_API_KEY` | `model="google:/gemini-2.0-flash"` |
 
-### 4. Set up MLflow tracking
+### 5. Set up MLflow tracking
 
 The notebooks read `MLFLOW_TRACKING_URI` and `MLFLOW_EXPERIMENT_NAME` from your `.env` file. Choose one of the two options below.
 
@@ -147,13 +157,14 @@ If you have access to a Red Hat OpenShift AI cluster with MLflow enabled:
    ```ini
    MLFLOW_TRACKING_URI=https://<your-rhoai-mlflow-route>/mlflow/
    MLFLOW_TRACKING_TOKEN=<your-openshift-token>
+   MLFLOW_WORKSPACE=<your-namespace>
    # Development only: uncomment to skip TLS certificate verification.
    # This disables certificate and hostname verification, which can
    # expose the bearer token to interception. Do not use in production.
    # MLFLOW_TRACKING_INSECURE_TLS=true
    ```
 
-   `MLFLOW_TRACKING_TOKEN` is **required** for Option A — without it, MLflow returns a generic 401/403 error. The token is the same `--token` value from `oc login`. You can retrieve it with `oc whoami -t`.
+   `MLFLOW_TRACKING_TOKEN` and `MLFLOW_WORKSPACE` are **required** for Option A. Without the token, MLflow returns a generic 401/403 error. Without the workspace, MLflow returns "Workspace context is required for this request." The token is the same `--token` value from `oc login` (retrieve it with `oc whoami -t`). The workspace is the OpenShift namespace you created in step 2.
 
 #### Option B — Local MLflow server
 
@@ -164,6 +175,8 @@ mlflow server --host 127.0.0.1 --port 5000
 ```
 
 Set `MLFLOW_TRACKING_URI=http://localhost:5000` in your `.env` file. After running a notebook, view traces and evaluation results in the MLflow UI at `http://localhost:5000`.
+
+> **Note:** If you get an HTTP 403 error or a "port already in use" error, use any free port (e.g., `--port 5001`) and update `MLFLOW_TRACKING_URI` in `.env` to match.
 
 No code changes are needed — the notebooks read these values from `.env` automatically.
 
@@ -183,16 +196,27 @@ Each failure mode has its own self-contained notebook that creates traces, evalu
 | 8 | [Hallucinated Tool Call](failure-modes/08_hallucinated_tool_call/) | Custom `@scorer` (deterministic) | [08_hallucinated_tool_call.ipynb](failure-modes/08_hallucinated_tool_call/08_hallucinated_tool_call.ipynb) |
 | 9 | [Verification Skipped](failure-modes/09_verification_skipped/) | Custom `make_judge()` | [09_verification_skipped.ipynb](failure-modes/09_verification_skipped/09_verification_skipped.ipynb) |
 
-## End-to-end evaluation
+## OpenCode skill evaluation
 
-The failure mode notebooks above teach individual scorers using synthetic traces. The [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) applies them all together on a real agent:
+The [OpenCode evaluation notebook](opencode-end-to-end-example/opencode_agent_evaluation.ipynb) demonstrates the end-to-end evaluation workflow for [OpenCode](https://github.com/opendatahub-io/opencode) skills on Red Hat OpenShift AI — similar to the LangGraph end-to-end notebook above, but for a coding agent. Individual scorer behavior is covered in the failure-mode notebooks; this notebook focuses on applying them as a complete workflow.
+
+- **Simulate skill traces** — creates traces mirroring real skill executions observed on cluster
+- **Two-tier evaluation** — runs built-in + custom scorers (deterministic → LLM judges)
+- **Discover a gap** — `write_verification_check` finds that `pr-summarizer` skips read-back after writing
+- **Strengthen and re-evaluate** — updates the skill language, confirms the fix with before/after evaluation
+
+See the [OpenCode README](opencode-end-to-end-example/README.md) for setup and file details.
+
+## LangGraph evaluation
+
+The failure mode notebooks above teach individual scorers using synthetic traces. The [LangGraph evaluation notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) applies them all together on a real agent:
 
 - **Builds a real agent** — a National Parks trip planning assistant using LangGraph, with 7 tools (5 NPS API + 2 custom)
 - **Traces automatically** — `mlflow.langchain.autolog()` captures every tool call and decision
 - **Evaluates across all 9 failure modes** — using 11 scorers organized into a two-tier strategy (Tier 1 deterministic → gating → Tier 2 LLM judges)
-- **Custom scorers** — defined in [`end-to-end/scorers.py`](end-to-end/scorers.py) using MLflow's `@scorer` decorator and `make_judge()` function, tailored to the NPS agent
+- **Custom scorers** — defined in [`langgraph-end-to-end-example/scorers.py`](langgraph-end-to-end-example/scorers.py) using MLflow's `@scorer` decorator and `make_judge()` function, tailored to the NPS agent
 
-See the [end-to-end README](end-to-end/README.md) for setup details and the full scorer breakdown.
+See the [LangGraph README](langgraph-end-to-end-example/README.md) for setup details and the full scorer breakdown.
 
 ## Cost-effective evaluation strategy
 
@@ -227,10 +251,10 @@ Each trace costs one or more LLM calls. Run these on a representative sample to 
 
 ### In practice
 
-The Tier 1 and Tier 2 tables above list all scorers taught across the failure mode notebooks. The [end-to-end notebook](end-to-end/agent_evaluation_end_to_end.ipynb) uses a subset of these — see its [scorer table](end-to-end/README.md#scorers-used) for the exact set.
+The Tier 1 and Tier 2 tables above list all scorers taught across the failure mode notebooks. The [LangGraph evaluation notebook](langgraph-end-to-end-example/langgraph_agent_evaluation.ipynb) uses a subset of these — see its [scorer table](langgraph-end-to-end-example/README.md#scorers-used) for the exact set.
 
 1. **Run Tier 1 on 100% of traces** — fast, free, catches obvious failures.
-2. **For failure modes covered by both tiers** (PII Leakage, Repeated Action Loop, Tool Misuse): if Tier 1 finds failures on multiple traces (e.g., ≥2), the problem is confirmed — skip the corresponding LLM judge and fix the agent. A single failure could be noise, so you may still want the LLM judge to investigate. The end-to-end notebook uses `GATE_THRESHOLD=2` for this decision.
+2. **For failure modes covered by both tiers** (PII Leakage, Repeated Action Loop, Tool Misuse): if Tier 1 finds failures on multiple traces (e.g., ≥2), the problem is confirmed — skip the corresponding LLM judge and fix the agent. A single failure could be noise, so you may still want the LLM judge to investigate. The LangGraph evaluation notebook uses `GATE_THRESHOLD=2` for this decision.
 3. **For failure modes with no Tier 1 scorer** (Excessive Steps, Goal Achievement, Graceful Refusal, Hallucinated Completion, Verification Skipped): run the LLM judge on a sampled subset.
 
 ### Why this is cost-effective
@@ -255,10 +279,15 @@ agentic-evaluation/
     07_repeated_action_loop/ — notebook + docs + README
     08_hallucinated_tool_call/ — notebook + docs + README
     09_verification_skipped/  — notebook + docs + README
-  end-to-end/
-    agent_evaluation_end_to_end.ipynb — real agent + two-tier evaluation
+  langgraph-end-to-end-example/
+    langgraph_agent_evaluation.ipynb — real agent + two-tier evaluation
     scorers.py           — custom scorers for the NPS agent
     golden_queries.json  — 5 evaluation queries with expectations
+  opencode-end-to-end-example/
+    opencode_agent_evaluation.ipynb — end-to-end evaluation on OpenCode traces
+    scorers.py           — custom scorers for OpenCode trace format
+    golden_queries.json  — reference queries for OpenCode skills
+    skills/              — OpenCode skill definitions (python-file-review, pr-summarizer)
 ```
 
 `tools.py` contains the tool definitions (function name, description, parameters) used by the simulated agents in the notebooks. Each failure mode imports the tools it needs. You don't need to modify this file unless you're adding new failure modes.

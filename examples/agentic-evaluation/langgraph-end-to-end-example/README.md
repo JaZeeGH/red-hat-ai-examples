@@ -1,4 +1,4 @@
-# End-to-End Agent Evaluation
+# LangGraph Agent Evaluation
 
 This notebook demonstrates the full agent evaluation workflow — build a real agent, trace its behavior with MLflow on [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) (RHOAI), and evaluate those traces using the [tiered scoring strategy](../README.md#cost-effective-evaluation-strategy). A local MLflow server can also be used as an alternative.
 
@@ -64,7 +64,7 @@ Custom scorers are defined in [`scorers.py`](scorers.py). Built-in scorers come 
 
 ## Running the notebook
 
-Open [agent_evaluation_end_to_end.ipynb](agent_evaluation_end_to_end.ipynb) and run all cells. The notebook:
+Open [langgraph_agent_evaluation.ipynb](langgraph_agent_evaluation.ipynb) and run all cells. The notebook:
 
 1. Defines 7 tools (5 NPS API + 2 custom)
 2. Builds a ReAct agent with GPT-4o-mini
@@ -80,7 +80,7 @@ The notebook uses `gpt-4o-mini` as the agent model and `gpt-4.1` as the judge mo
 
 | File | What it is |
 |---|---|
-| [agent_evaluation_end_to_end.ipynb](agent_evaluation_end_to_end.ipynb) | The notebook |
+| [langgraph_agent_evaluation.ipynb](langgraph_agent_evaluation.ipynb) | The notebook |
 | [scorers.py](scorers.py) | Custom scorers organized by tier |
 | [golden_queries.json](golden_queries.json) | 5 evaluation queries (3 with expectations) |
 | `trip_plans/` | Saved trip itineraries (created at runtime) |

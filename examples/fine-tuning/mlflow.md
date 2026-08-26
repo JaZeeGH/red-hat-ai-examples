@@ -1,9 +1,22 @@
 # MLflow Integration (Optional)
 
-Training Hub supports [MLflow](https://mlflow.org/) for experiment tracking. When MLflow is enabled on your RHOAI cluster, training metrics (loss, learning rate, etc.) are automatically logged to MLflow experiments — no additional code changes required beyond setting the experiment name.
+Red Hat OpenShift AI includes a managed [MLflow](https://mlflow.org/) instance for experiment tracking. When MLflow is enabled on your RHOAI cluster, training metrics (loss, learning rate, etc.) are automatically logged to MLflow experiments — no additional code changes required beyond setting the experiment name.
 
-> [!NOTE]
-> MLflow integration is available for **interactive (single node)** notebooks only. Distributed training jobs do not currently support MLflow tracking.
+## Supported training modes
+
+| Mode | MLflow support | Notes |
+| --- | --- | --- |
+| **Interactive (single node)** | Yes | Set `MLFLOW_EXPERIMENT_NAME` in the notebook; workbench annotation auto-injects tracking URI and auth |
+| **Distributed (Kubeflow Trainer)** | Yes | Pass `MLFLOW_TRACKING_AUTH=kubernetes-namespaced` and `mlflow[kubernetes]` in the training job env — see the [Orpheus TTS example](../trainer/orpheus-tts/) |
+
+## How it works
+
+The MLflow Operator deploys a cluster-scoped, singleton tracking server in `redhat-ods-applications`. Each OpenShift project maps 1:1 to an MLflow workspace. Authentication uses `kubernetes-namespaced` — the SDK automatically injects service account tokens and workspace headers on every request.
+
+- **Workbenches**: Annotate the Notebook CR with `opendatahub.io/mlflow-instance: mlflow` to auto-inject `MLFLOW_TRACKING_URI`, `MLFLOW_TRACKING_AUTH`, and `MLFLOW_K8S_INTEGRATION`. The dashboard does this automatically when MLflow is `Managed`.
+- **Training pods**: Set `MLFLOW_TRACKING_AUTH=kubernetes-namespaced` in the job env and install `mlflow[kubernetes]` (>=3.11). Grant the training service account the `mlflow-operator-mlflow-integration` ClusterRole.
+
+For full details, see [Working with MLflow](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_mlflow/) in the RHOAI documentation.
 
 ## Enabling MLflow
 
@@ -25,7 +38,7 @@ For this to work, MLflow must be enabled as a component in your RHOAI installati
      -p '{"spec":{"components":{"mlflowoperator":{"managementState":"Managed"}}}}'
    ```
 
-2. Create an `MLflow` CR to deploy the tracking server (example using SQLite and a PV for storage):
+2. Create an `MLflow` CR to deploy the tracking server (example using PVC-backed storage):
 
    ```bash
    oc apply -f - <<EOF
@@ -34,8 +47,7 @@ For this to work, MLflow must be enabled as a component in your RHOAI installati
    metadata:
      name: mlflow
    spec:
-     backendStoreUri: "sqlite:////mlflow/mlflow.db"
-     defaultArtifactRoot: "file:///mlflow/artifacts"
+     artifactsDestination: "file:///mlflow/artifacts"
      serveArtifacts: true
      storage:
        accessModes:
@@ -46,13 +58,22 @@ For this to work, MLflow must be enabled as a component in your RHOAI installati
    EOF
    ```
 
-For full details, see the [Configuring MLflow in OpenShift AI](https://access.redhat.com/articles/7136121) Knowledgebase article (requires Red Hat Customer Portal login).
+   For production, use PostgreSQL for the backend store and S3 for artifacts. See [Install and configure MLflow](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/working_with_mlflow/installing-mlflow_mlflow).
+
+3. For distributed training jobs, grant the training service account MLflow access:
+
+   ```bash
+   oc create rolebinding <name>-mlflow-integration \
+     --clusterrole=mlflow-operator-mlflow-integration \
+     --serviceaccount=<namespace>:default \
+     -n <namespace>
+   ```
 
 ## Viewing MLflow Experiments
 
 Once training completes with MLflow enabled, you can browse your experiment runs:
 
-1. In the OpenShift AI dashboard, navigate to **Develop & train → Experiments** from the left sidebar menu.
+1. In the OpenShift AI dashboard, navigate to **Develop & train → Experiments (MLflow)** from the left sidebar menu.
 2. Select the experiment name to view all runs.
 3. Each run contains logged metrics (training loss, learning rate), parameters, and artifacts.
 

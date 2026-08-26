@@ -3,7 +3,7 @@ import os
 import mlflow
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
 
 if os.environ.get("MLFLOW_TRACKING_INSECURE_TLS", "").lower() == "true":
     import urllib3

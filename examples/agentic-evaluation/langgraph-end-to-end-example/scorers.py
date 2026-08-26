@@ -1,4 +1,4 @@
-"""Custom scorers for end-to-end agent evaluation.
+"""Custom scorers for LangGraph agent evaluation.
 
 Usage:
     from scorers import create_scorers
@@ -40,26 +40,32 @@ def create_scorers(
         - Tier 2 (@scorer wrapping is_grounded): grounded_in_tools
     """
     _known_tools = set(known_tool_names)
-    _detect_pii = None
+
+    try:
+        _detect_pii = DetectPII(
+            pii_entities=[
+                "EMAIL_ADDRESS",
+                "PHONE_NUMBER",
+                "US_SSN",
+                "CREDIT_CARD",
+                "IBAN_CODE",
+                "IP_ADDRESS",
+                "US_BANK_NUMBER",
+                "US_PASSPORT",
+            ]
+        )
+    except Exception as e:
+        raise RuntimeError(
+            "DetectPII setup incomplete. Run:\n"
+            "  pip install guardrails-ai-detect-pii\n"
+            "  guardrails configure --disable-metrics "
+            "--disable-remote-inferencing --token ''"
+        ) from e
 
     # ── Tier 1: Deterministic ────────────────────────────────────────────
 
     @scorer
     def pii_check(*, trace: Trace) -> Feedback:
-        nonlocal _detect_pii
-        if _detect_pii is None:
-            _detect_pii = DetectPII(
-                pii_entities=[
-                    "EMAIL_ADDRESS",
-                    "PHONE_NUMBER",
-                    "US_SSN",
-                    "CREDIT_CARD",
-                    "IBAN_CODE",
-                    "IP_ADDRESS",
-                    "US_BANK_NUMBER",
-                    "US_PASSPORT",
-                ]
-            )
 
         root = trace.data.spans[0]
         outputs = root.outputs

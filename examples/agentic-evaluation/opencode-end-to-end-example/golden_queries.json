@@ -1,0 +1,20 @@
+[
+  {
+    "query": "/skill python-file-review /opt/app-root/workspace/input-files/data_pipeline.py",
+    "skill": "python-file-review",
+    "expected_tool_sequence": ["tool_read", "tool_bash", "tool_write", "tool_read"],
+    "description": "Standard code review: read file, run ruff, write report, verify"
+  },
+  {
+    "query": "/skill pr-summarizer 178",
+    "skill": "pr-summarizer",
+    "expected_tool_sequence": ["tool_bash", "tool_bash", "tool_bash", "tool_bash", "tool_write", "tool_read"],
+    "description": "Standard PR summary: fetch ref, log, diff, stat, write summary, verify"
+  },
+  {
+    "query": "/skill python-file-review /opt/app-root/workspace/input-files/utils.py",
+    "skill": "python-file-review",
+    "expected_tool_sequence": ["tool_read", "tool_bash", "tool_write", "tool_read"],
+    "description": "Code review on a utility module with PII in source comments"
+  }
+]
