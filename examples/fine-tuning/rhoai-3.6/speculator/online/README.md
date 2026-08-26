@@ -66,6 +66,7 @@ ONLINE mode requires the most GPUs because both the training container and the v
 - The vLLM sidecar is hard-limited to exactly **1 GPU** — more raises a `ValueError`
 - 1 training GPU works but is slower — 2 GPUs enable data-parallel training
 - All GPUs must be on the same node
+- **(Optional)** To run the **"Test the Trained Draft Model"** section in the notebook, attach a GPU to the workbench and assign at least **8 GiB of RAM**. This converts the trained checkpoint and runs speculative decoding inference locally using vLLM. It is not required for training — only for local validation of the draft model.
 
 ## Verifier Model
 
