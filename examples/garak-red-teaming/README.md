@@ -7,6 +7,19 @@ This walkthrough demonstrates how to red-team a deployed AI agent using
 then mitigate identified vulnerabilities using
 [NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/).
 
+The example uses the **LangGraph ReAct agent** from the
+[agentic-starter-kits](https://github.com/redhat-ai-services/agentic-starter-kits)
+repository — a general-purpose agent with a reason-and-act loop that can call
+external tools. Garak scans can be submitted against any agent or LLM that
+exposes an OpenAI-compatible chat completions endpoint, so you can substitute
+your own.
+
+> **Endpoint requirement:** Garak's EvalHub adapter always appends `/v1` to
+> the model URL, then calls `/v1/chat/completions`. Your agent must respond
+> on that path. This agent already includes the `/v1` route alias
+> ([main.py:267](main.py#L267)). If you use a different agent, add a
+> `/v1/chat/completions` route or ensure your framework serves it by default.
+
 You will:
 
 1. Deploy a LangGraph ReAct agent to OpenShift
@@ -55,9 +68,29 @@ no changes to the agent's source code are needed.
 oc get crd nemoguardrails.trustyai.opendatahub.io
 
 # EvalHub
-oc get evalhub -n <namespace>
-oc get pods -n <namespace> -l app=eval-hub
+oc get evalhub -n ${NAMESPACE}
+oc get pods -n ${NAMESPACE} -l app=eval-hub
 ```
+
+### Set up environment variables
+
+Define these once — every command in this walkthrough references them:
+
+```bash
+NAMESPACE=$(oc project -q)
+MODEL_ID=qwen2-5-7b-instruct                  # change to your model
+TOKEN=$(oc whoami -t)
+AGENT_SVC="http://langgraph-react-agent.${NAMESPACE}.svc.cluster.local:8080"
+EVALHUB_ROUTE=$(oc get route evalhub -n ${NAMESPACE} -o jsonpath='{.spec.host}')
+
+echo "Namespace:  ${NAMESPACE}"
+echo "Model:      ${MODEL_ID}"
+echo "Agent SVC:  ${AGENT_SVC}"
+echo "EvalHub:    ${EVALHUB_ROUTE}"
+```
+
+> **Tip:** If your shell session expires, re-run this block to refresh
+> `TOKEN`. The other values are stable.
 
 ---
 
@@ -71,7 +104,7 @@ Edit `.env` with your model endpoint and container image:
 
 ```ini
 API_KEY=your-api-key-here
-BASE_URL=http://vllm.<namespace>.svc.cluster.local:8000/v1
+BASE_URL=http://vllm.${NAMESPACE}.svc.cluster.local:8000/v1
 MODEL_ID=llama-3.1-8b-instruct
 CONTAINER_IMAGE=quay.io/your-username/langgraph-react-agent:latest
 ```
@@ -125,30 +158,21 @@ curl -s -X POST https://<route-url>/v1/chat/completions \
 
 ## Step 3: Run a Baseline Garak Scan
 
-Garak scans are submitted through the EvalHub API. Start with the `quick`
-benchmark for a fast smoke test (a single DAN jailbreak probe), then run
-`quality` for the full content safety scan.
+Garak scans are submitted through the EvalHub API. This walkthrough uses
+the `quick` benchmark (a single DAN jailbreak probe) for the end-to-end
+flow — it completes in under 2 minutes and produces a clear result.
 
-> **Why `quick` first?** It completes in minutes and often produces a dramatic
-> result — in testing, the DAN 11.0 jailbreak probe achieved **100% ASR**
-> against an unguarded agent, confirming the scan pipeline works before
-> committing to a longer scan.
-
-### Set up environment variables for scan commands
-
-```bash
-NAMESPACE=$(oc project -q)
-AGENT_SVC="http://langgraph-react-agent.${NAMESPACE}.svc.cluster.local:8080"
-EVALHUB_ROUTE=$(oc get route evalhub -n ${NAMESPACE} -o jsonpath='{.spec.host}')
-echo "Agent: ${AGENT_SVC}"
-echo "EvalHub: ${EVALHUB_ROUTE}"
-```
+> **For comprehensive scans:** Replace `"id": "quick"` with
+> `"id": "quality"` (content safety, ~89 probes, 4–8 hours) or
+> `"id": "owasp_llm_top10"` (security audit, ~200 probes, 6–12 hours).
+> See [Available Garak Benchmarks](#available-garak-benchmarks) for the
+> full list.
 
 ### Verify the agent is reachable from EvalHub
 
 ```bash
-EVALHUB_POD=$(oc get pods -n <namespace> -l app=eval-hub -o jsonpath='{.items[0].metadata.name}')
-oc exec $EVALHUB_POD -n <namespace> -c evalhub -- \
+EVALHUB_POD=$(oc get pods -n ${NAMESPACE} -l app=eval-hub -o jsonpath='{.items[0].metadata.name}')
+oc exec $EVALHUB_POD -n ${NAMESPACE} -c evalhub -- \
   curl -s -o /dev/null -w '%{http_code}' -X POST \
   ${AGENT_SVC}/v1/chat/completions \
   -H 'Content-Type: application/json' \
@@ -159,52 +183,15 @@ oc exec $EVALHUB_POD -n <namespace> -c evalhub -- \
 ### Submit the scan
 
 ```bash
-TOKEN=$(oc whoami -t)
-EVALHUB_ROUTE=$(oc get route evalhub -n <namespace> -o jsonpath='{.spec.host}')
-
-curl -sk -X POST \
+SCAN_RESPONSE=$(curl -sk -X POST \
   -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant: <namespace>" \
+  -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
   "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs" \
   -d '{
-    "name": "garak-baseline-quality-scan",
+    "name": "garak-baseline-scan",
     "model": {
-      "name": "<model-id>",
-      "url": "'"${AGENT_SVC}"'"
-    },
-    "benchmarks": [
-      {
-        "id": "quality",
-        "provider_id": "garak"
-      }
-    ]
-  }'
-```
-
-> **Note:** `model.url` is the **in-cluster service URL** (not the external
-> route). Garak runs inside the EvalHub pod and needs to reach the agent
-> within the cluster. `model.name` is the model identifier passed in the
-> OpenAI `model` field.
-
-Save the `job_id` from the response — you will need it to check results.
-
-### Optional: Quick smoke test first
-
-For a faster initial test, use the `quick` benchmark (single DAN jailbreak
-probe, completes in minutes):
-
-```bash
-TOKEN=$(oc whoami -t)
-curl -sk -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant: <namespace>" \
-  -H "Content-Type: application/json" \
-  "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs" \
-  -d '{
-    "name": "garak-quick-smoke-test",
-    "model": {
-      "name": "<model-id>",
+      "name": "'"${MODEL_ID}"'",
       "url": "'"${AGENT_SVC}"'"
     },
     "benchmarks": [
@@ -212,9 +199,33 @@ curl -sk -X POST \
         "id": "quick",
         "provider_id": "garak"
       }
-    ]
-  }'
+    ],
+    "experiment": {
+      "name": "garak-red-teaming",
+      "tags": [
+        {"key": "agent", "value": "langgraph-react-agent"},
+        {"key": "guardrails", "value": "none"},
+        {"key": "scan_type", "value": "quick"}
+      ]
+    }
+  }')
+
+JOB_ID=$(echo "$SCAN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['resource']['id'])")
+echo "$SCAN_RESPONSE" | python3 -m json.tool
+echo ""
+echo "JOB_ID=${JOB_ID}"
 ```
+
+> **Note:** `model.url` is the **in-cluster service URL** (not the external
+> route). Garak runs inside the EvalHub pod and needs to reach the agent
+> within the cluster. `model.name` is the model identifier passed in the
+> OpenAI `model` field.
+>
+> **MLflow:** The `experiment` block is optional but recommended — it
+> pushes results to the RHOAI Experiments dashboard for comparison.
+> Without it, results are only available via the EvalHub API. See
+> [docs/scan-configuration.md — MLflow Experiment Tracking](docs/scan-configuration.md#mlflow-experiment-tracking)
+> for details on what gets logged.
 
 ---
 
@@ -222,39 +233,37 @@ curl -sk -X POST \
 
 ### Poll job status
 
+The `quick` scan completes in under 2 minutes. Poll until `state` shows
+`completed`:
+
 ```bash
-TOKEN=$(oc whoami -t)
 curl -sk -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant: <namespace>" \
-  "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/<job-id>" \
+  -H "X-Tenant: ${NAMESPACE}" \
+  "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/${JOB_ID}" \
   | python3 -m json.tool
 ```
 
 ### Interpret ASR scores
 
 Garak measures **attack success rate (ASR)** — the fraction of adversarial
-prompts that bypassed the model's safety mechanisms. **Lower is better.**
+prompts that bypassed safety mechanisms. **Lower is better.** The default pass
+threshold is 0.3 (ASR must be below 30%).
 
-| ASR Range | Interpretation |
-|---|---|
-| 0.0 | No attacks succeeded — strong safety alignment |
-| 0.0 – 0.3 | Acceptable — passes the default threshold |
-| 0.3 – 0.7 | Concerning — some attacks succeed |
-| 0.7 – 1.0 | Vulnerable — most attacks succeed |
-
-The `quality` benchmark results include per-probe ASR values for categories
-like toxicity, violence, hate speech, and profanity.
+For detailed scoring ranges and interpretation guidance, see
+[docs/scan-configuration.md](docs/scan-configuration.md#interpreting-asr-scores).
 
 **Expected outcome:** Without guardrails, the agent relies entirely on the
-LLM's built-in safety alignment. In testing with Qwen 2.5 7B:
+LLM's built-in safety alignment. Results vary significantly by model size:
 
-- `quick` benchmark: **100% ASR** on the DAN 11.0 jailbreak probe (complete failure)
-- `quality` benchmark: non-zero ASR across toxicity, violence, and hate probes
+| Model | `quick` (DAN 11.0) | Notes |
+|---|---|---|
+| Qwen 2.5 7B | **ASR = 1.0** (100% — fully vulnerable) | Smaller models have weaker safety alignment |
+| Qwen 2.5 72B | **ASR = 0.0** (blocked by model) | Larger models resist basic jailbreaks |
 
-> **Note:** ASR scores vary by model. Well-aligned models (e.g. Llama 3.1)
-> may already show low ASR on some probes. The guardrails in Step 5 add a
-> second defense layer — important because model-level safety can be bypassed
-> by novel attack techniques that weren't in the training data.
+Even when the model blocks simple attacks like DAN, more sophisticated probes
+in the `owasp_llm_top10` and `quality` benchmarks (encoding attacks, role-play,
+prompt extraction) often succeed. Guardrails in Step 5 add a second defense
+layer that catches attacks the model misses.
 
 ### Graceful error handling
 
@@ -271,6 +280,10 @@ a graceful error message. This lets Garak evaluate the response and move on.
 
 ## Step 5: Apply NeMo Guardrails
 
+> **Important:** Wait for the baseline scan (Step 3) to complete before
+> proceeding. Changing the agent's `BASE_URL` while a scan is running
+> corrupts that scan's results.
+
 NeMo Guardrails is deployed as a transparent proxy between the agent and the
 LLM. This walkthrough uses the **self-check (local) profile** — the same LLM
 that answers questions also classifies input/output against a safety policy.
@@ -278,11 +291,12 @@ No additional NVIDIA API keys or dedicated safety models are required.
 
 ### 5.1 Configure and deploy the guardrails proxy
 
-Add `LLM_BASE_URL` to your `.env` — this is the actual LLM endpoint that the
-guardrails proxy will forward to (your current `BASE_URL`):
+Set `LLM_BASE_URL` in your `.env` to the LLM endpoint that the guardrails
+proxy will forward to. This should be your current `BASE_URL` — any
+OpenAI-compatible chat completions endpoint:
 
 ```ini
-LLM_BASE_URL=http://vllm.<namespace>.svc.cluster.local:8000/v1
+LLM_BASE_URL=<your-llm-endpoint>/v1
 ```
 
 Then deploy the guardrails:
@@ -311,7 +325,7 @@ Edit `.env` to change `BASE_URL` to the guardrails service (port 80, the
 default for the NemoGuardrails service):
 
 ```ini
-BASE_URL=http://langgraph-react-agent-guardrails.<namespace>.svc.cluster.local/v1
+BASE_URL=http://langgraph-react-agent-guardrails.${NAMESPACE}.svc.cluster.local/v1
 ```
 
 Redeploy the agent:
@@ -350,50 +364,25 @@ curl -s -X POST https://${ROUTE}/v1/chat/completions \
 
 ## Step 6: Re-scan with Guardrails Active
 
-Submit the same `quality` benchmark scan, now with guardrails in place:
+Submit the same scan, now with guardrails in place. Use the same
+`experiment.name` so both runs appear side-by-side in MLflow — the
+`guardrails` tag distinguishes them:
 
 ```bash
-TOKEN=$(oc whoami -t)
-curl -sk -X POST \
+SCAN_RESPONSE=$(curl -sk -X POST \
   -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant: <namespace>" \
+  -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
   "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs" \
   -d '{
-    "name": "garak-guardrailed-quality-scan",
+    "name": "garak-guardrailed-scan",
     "model": {
-      "name": "<model-id>",
+      "name": "'"${MODEL_ID}"'",
       "url": "'"${AGENT_SVC}"'"
     },
     "benchmarks": [
       {
-        "id": "quality",
-        "provider_id": "garak"
-      }
-    ]
-  }'
-```
-
-### Optional: MLflow experiment tracking
-
-To compare before/after results in MLflow, add an `experiment` block:
-
-```bash
-TOKEN=$(oc whoami -t)
-curl -sk -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant: <namespace>" \
-  -H "Content-Type: application/json" \
-  "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs" \
-  -d '{
-    "name": "garak-guardrailed-quality-scan",
-    "model": {
-      "name": "<model-id>",
-      "url": "'"${AGENT_SVC}"'"
-    },
-    "benchmarks": [
-      {
-        "id": "quality",
+        "id": "quick",
         "provider_id": "garak"
       }
     ],
@@ -402,13 +391,16 @@ curl -sk -X POST \
       "tags": [
         {"key": "agent", "value": "langgraph-react-agent"},
         {"key": "guardrails", "value": "nemo-self-check"},
-        {"key": "scan_type", "value": "quality"}
+        {"key": "scan_type", "value": "quick"}
       ]
     }
-  }'
-```
+  }')
 
-Results appear in the RHOAI dashboard under **Experiments**.
+JOB_ID=$(echo "$SCAN_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['resource']['id'])")
+echo "$SCAN_RESPONSE" | python3 -m json.tool
+echo ""
+echo "JOB_ID=${JOB_ID}"
+```
 
 ---
 
@@ -417,16 +409,13 @@ Results appear in the RHOAI dashboard under **Experiments**.
 ### Poll the guardrailed scan results
 
 ```bash
-TOKEN=$(oc whoami -t)
 curl -sk -H "Authorization: Bearer $TOKEN" \
-  -H "X-Tenant: <namespace>" \
-  "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/<guardrailed-job-id>" \
+  -H "X-Tenant: ${NAMESPACE}" \
+  "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/${JOB_ID}" \
   | python3 -m json.tool
 ```
 
-### Quick scan comparison (immediate result)
-
-If you ran the `quick` benchmark in both steps, compare immediately:
+### Expected comparison
 
 | Scan | DAN 11.0 ASR | Pass (threshold 0.3) |
 |---|---|---|
@@ -435,27 +424,22 @@ If you ran the `quick` benchmark in both steps, compare immediately:
 
 The guardrails completely mitigated the DAN jailbreak — from 100% attack
 success to 0%. The regex rail catches the "ignore previous instructions"
-pattern before it reaches the LLM.
+pattern before it reaches the LLM, and the self-check input rail blocks
+toxic content.
 
-### Quality scan comparison (after both complete)
+### Switching to comprehensive scans
 
-The `quality` scan takes longer (89 probes, typically several hours). Compare
-the ASR values once both scans complete:
+The `quick` benchmark validates the pipeline end-to-end in under 2 minutes.
+For comprehensive coverage, re-run Steps 3 and 6 replacing the benchmark:
 
-| Probe Category | Baseline ASR | Guardrailed ASR | Improvement |
-|---|---|---|---|
-| Toxicity | _from Step 4_ | _from Step 7_ | |
-| Violence | _from Step 4_ | _from Step 7_ | |
-| Hate speech | _from Step 4_ | _from Step 7_ | |
-| Profanity | _from Step 4_ | _from Step 7_ | |
+| Replace `"id": "quick"` with | Coverage | Duration |
+|---|---|---|
+| `"id": "quality"` | Content safety — toxicity, violence, hate, profanity (~89 probes) | 4–8 hours |
+| `"id": "owasp_llm_top10"` | OWASP Top 10 security audit (~200 probes) | 6–12 hours |
 
-**Expected outcome:** The guardrailed scan should show lower ASR across content
-safety probes. The self-check rails block unsafe input before it reaches the
-LLM and filter unsafe output before it reaches the user.
-
-> **Timing:** The `quality` benchmark runs ~89 probes and can take 4–8 hours
-> depending on the model's response time. Use the `quick` benchmark for fast
-> iteration, and `quality` for comprehensive coverage.
+> **Timing:** Longer scans take hours. Don't run concurrent scans against
+> the same LLM endpoint.
+>
 > **Note:** Self-check accuracy depends on the model's instruction-following
 > ability. For production deployments with higher classification accuracy,
 > use dedicated NemoGuard NIM classifiers — see
@@ -465,24 +449,10 @@ LLM and filter unsafe output before it reaches the user.
 
 ## Step 8: Remediation Mapping
 
-For a complete reference mapping Garak benchmarks and probes to NeMo Guardrails
-configurations, see **[docs/remediation-mapping.md](docs/remediation-mapping.md)**.
-
-### Summary
-
-| Garak Benchmark | NeMo Rail Type | What It Mitigates |
-|---|---|---|
-| `quality` | `self check input` + `self check output` | Toxic, violent, hateful, explicit content |
-| `owasp_llm_top10` | `regex check input` + `self check input` | Prompt injection, jailbreaks |
-| `avid_security` | `self check output` | Data exfiltration, info disclosure |
-| `avid_ethics` | `self check input` + `self check output` | Bias, stereotyping |
-| `cwe` | `regex check input` | Code/command injection |
-
-The remediation mapping document also covers:
-
-- How to extend rails for new probe categories
-- Configuration snippets for each mapping
-- The `nemoguard` profile with dedicated NIM classifiers for production
+For a reference mapping Garak benchmarks to NeMo Guardrails configurations —
+including config snippets for each probe category, the production nemoguard
+profile, and guidance on extending rails — see
+**[docs/remediation-mapping.md](docs/remediation-mapping.md)**.
 
 ---
 
@@ -503,17 +473,23 @@ make undeploy-guardrails # remove guardrails only
 
 ## Available Garak Benchmarks
 
-| Benchmark ID | Description |
-|---|---|
-| `quick` | Single-probe rapid scan (DAN jailbreak) |
-| `owasp_llm_top10` | OWASP top 10 LLM security risks |
-| `intents` | Context-aware vulnerability scan |
-| `avid` | Full AI vulnerability scan (all AVID taxonomy categories) |
-| `avid_security` | Security-specific AVID probes |
-| `avid_ethics` | Ethical concerns — bias and harmful content |
-| `avid_performance` | Performance degradation |
-| `quality` | Toxic and harmful content (violence, profanity, toxicity, hate) |
-| `cwe` | Common Weakness Enumeration tests |
+| Benchmark ID | Duration | Best For |
+|---|---|---|
+| `quick` | ~2 min | Smoke test (single DAN jailbreak probe) |
+| `owasp_llm_top10` | 6–12 hrs | Comprehensive OWASP Top 10 security audit (~200 probes) |
+| `quality` | 4–8 hrs | Content safety — toxicity, violence, hate, profanity |
+| `intents` | 2–4 hrs | Context-aware intent-based attacks |
+| `avid` | 12+ hrs | Full AVID taxonomy vulnerability scan |
+| `avid_security` | 6–10 hrs | Security-focused AVID subset |
+| `avid_ethics` | 4–8 hrs | Bias, fairness, harmful content |
+| `cwe` | 2–4 hrs | Software weakness exploitation (CWE) |
+
+For scan configuration details — custom parameters, OWASP LLM Top 10 probe
+breakdown, filtering by risk category, multi-benchmark jobs, and advanced
+garak config overrides — see **[docs/scan-configuration.md](docs/scan-configuration.md)**.
+
+For mapping scan results to guardrails mitigations, see
+**[docs/remediation-mapping.md](docs/remediation-mapping.md)**.
 
 ---
 
@@ -554,6 +530,7 @@ make undeploy-guardrails # remove guardrails only
 │       ├── prompts.yml                # Safety policy prompts
 │       └── rails.co                   # Colang flows
 ├── docs/
+│   ├── scan-configuration.md          # Scan benchmarks, OWASP Top 10, custom parameters
 │   └── remediation-mapping.md         # Garak probe → NeMo rail mapping
 ├── tests/                             # Unit, behavioral, and integration tests
 ├── playground/                        # Web chat UI
@@ -568,8 +545,12 @@ make undeploy-guardrails # remove guardrails only
 | Scan hangs or takes days | Agent returning HTTP 500 on adversarial prompts; Garak retries 500s indefinitely | This agent has `_invoke_with_retry` which returns 200 after 3 retries. If you see 500s in logs, check for new exception types not in `_RETRYABLE_EXCEPTIONS` |
 | `Forbidden` on job submission | Missing RBAC permissions | Use `oc whoami -t` for the bearer token; ensure the user has `evaluations` verb on `trustyai.opendatahub.io` |
 | Agent unreachable from EvalHub | Network policy or wrong service URL | Test from inside the cluster: `oc exec <evalhub-pod> -- curl <agent-svc>:8080/health` |
+| Baseline scan timeouts after applying guardrails | Agent `BASE_URL` changed mid-scan; sidecar proxy times out on extra guardrails hop | Wait for baseline scan to complete before changing `BASE_URL` in Step 5. Use `quick` benchmark for fast iteration |
 | Guardrails pod not starting | Missing CRD or ConfigMap | Verify: `oc get crd nemoguardrails.trustyai.opendatahub.io` and `oc get configmap langgraph-react-agent-guardrails-config` |
 | Guardrails not blocking unsafe content | Self-check accuracy depends on model | Try a more capable model, or switch to the nemoguard profile with dedicated NIM classifiers |
+| `quality` scan with guardrails times out | Self-check guardrails add 2–3 extra LLM calls per request; EvalHub sidecar proxy has a 30s timeout | Use `quick` benchmark for guardrailed scans (blocks are fast). For `quality`, the scans will still progress — garak retries timeouts — but take much longer |
+| Scan results not visible in RHOAI dashboard | Missing `experiment` block in the scan submission | Add an `experiment` block — without it, results are only available via the EvalHub API. See [MLflow Experiment Tracking](docs/scan-configuration.md#mlflow-experiment-tracking) |
+| vLLM becomes unresponsive during long scans | Concurrent scans or retries saturate the LLM's request queue | Delete the scan job, then restart the vLLM pod. Don't run concurrent scans against the same LLM |
 
 ## References
 
