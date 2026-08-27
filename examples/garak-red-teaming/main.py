@@ -18,7 +18,7 @@ from fastapi.responses import (
     StreamingResponse,
 )
 from langchain_core.exceptions import OutputParserException
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel, Field, ValidationError
 from react_agent.agent import get_graph_closure
@@ -171,34 +171,21 @@ app = FastAPI(
 )
 
 
-def _auth_enabled() -> bool:
-    return getenv("AUTH_ENABLED", "false").strip().lower() == "true"
-
-
-def _configure_auth_middleware() -> None:
-    if not _auth_enabled():
-        return
-
-    try:
-        from agent_auth.middleware import SATokenAuthMiddleware
-    except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "AUTH_ENABLED=true, but auth middleware dependencies are not installed. "
-            "Run `uv sync --extra auth` to enable ServiceAccount token auth locally."
-        ) from exc
-
-    app.add_middleware(SATokenAuthMiddleware)
-
-
-_configure_auth_middleware()
-
-
-def _build_langchain_messages(messages: list[ChatMessage]) -> list[HumanMessage]:
-    """Extract the last user message from the OpenAI-format messages list."""
-    for msg in reversed(messages):
-        if msg.role == "user":
-            return [HumanMessage(content=msg.content)]
-    raise ValueError("No user message found in messages list")
+def _build_langchain_messages(messages: list[ChatMessage]) -> list:
+    """Convert OpenAI-format messages to LangChain message objects."""
+    _role_map = {
+        "user": HumanMessage,
+        "assistant": AIMessage,
+        "system": SystemMessage,
+    }
+    result = []
+    for msg in messages:
+        cls = _role_map.get(msg.role)
+        if cls:
+            result.append(cls(content=msg.content))
+    if not result or not any(isinstance(m, HumanMessage) for m in result):
+        raise ValueError("No user message found in messages list")
+    return result
 
 
 def _extract_usage(messages: list) -> dict | None:
@@ -528,16 +515,12 @@ if not _IMAGES_DIR.is_dir():
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def playground():
     """Serve the playground chat UI."""
-    if _auth_enabled():
-        raise HTTPException(status_code=404, detail="Not found")
     return FileResponse(_PLAYGROUND_HTML)
 
 
 @app.get("/images/{filename:path}", include_in_schema=False)
 async def serve_image(filename: str):
     """Serve images from the project-level images directory."""
-    if _auth_enabled():
-        raise HTTPException(status_code=404, detail="Not found")
     base = _IMAGES_DIR.resolve()
     file_path = (base / filename).resolve()
     try:

@@ -13,17 +13,10 @@ This follows the [Bring Your Own Container](https://github.com/NVIDIA/OpenShell/
 ## Build
 
 ```bash
-cd agents/langgraph/templates/react_agent
-
-# Copy repo-level assets into build context
-cp -r ../../../../images ./images
-mkdir -p ./components && cp -r ../../../../components/auth ./components/auth
+cd examples/garak-red-teaming
 
 podman build --platform linux/amd64 -t quay.io/<your-org>/langgraph-sandbox:latest -f Containerfile.openshell .
 podman push quay.io/<your-org>/langgraph-sandbox:latest
-
-# Clean up build context
-rm -rf ./images ./components
 ```
 
 Ensure the quay.io repository is public so the cluster can pull without imagePullSecrets.
@@ -106,4 +99,4 @@ OpenShell isolates the sandbox container and routes all outbound traffic through
 - `BASE_URL` must be reachable from within the sandbox. Use cluster-internal DNS for in-cluster endpoints.
 - If the model endpoint is unreachable, `/health` still returns healthy but `/chat/completions` will fail with a 500.
 - Build with `--platform linux/amd64` when targeting x86_64 clusters from Apple Silicon machines.
-- The `components/auth` dependency is pre-installed in the image for token-based auth support.
+- Auth support can be added by installing the `auth` optional dependency extra.

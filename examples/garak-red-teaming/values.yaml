@@ -8,4 +8,4 @@ auth:
   enabled: false
   audience: "langgraph-react-agent"
   allowedServiceAccounts: []
-  createAuthDelegatorBinding: true
+  createAuthDelegatorBinding: false

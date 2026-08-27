@@ -4,9 +4,8 @@ REPO_ROOT      := $(shell git rev-parse --show-toplevel 2>/dev/null || echo ../.
 CHART_DIR      := deployment
 VALUES_FILE    := values.yaml
 CONTAINER_CLI  := $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
-MODEL          ?= llama3.1:8b
 
-.PHONY: init re-init env ollama ogx-server run-app run-app-fresh run-cli build push build-openshift deploy undeploy deploy-guardrails undeploy-guardrails deploy-all undeploy-all test test-integration test-auth-integration dry-run help
+.PHONY: init re-init run-app run-app-fresh run-cli build push build-openshift deploy undeploy deploy-guardrails undeploy-guardrails deploy-all undeploy-all test test-integration test-auth-integration dry-run help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -17,54 +16,6 @@ re-init: ## Activate venv and reload .env variables
 
 init: ## Copy .env.example to .env for configuration
 	@if [ ! -f .env ]; then cp .env.example .env && echo "Created .env from .env.example - edit it with your configuration"; else echo ".env already exists - skipping"; fi
-
-env: ## Create venv, load .env, and install dependencies
-	@echo "==> Creating virtual environment and installing dependencies..." && \
-	  rm -rf .venv && \
-	  uv sync --python 3.12 && \
-	  echo "==> Load .env variables..." && \
-	  source .venv/bin/activate && set -a && source .env && set +a && \
-	  echo "" && \
-	  echo "Done. Next steps:" && \
-	  echo "  make ollama        # install Ollama and pull models" && \
-	  echo "  make ogx-server    # start OGX server"
-
-ollama: ## Install Ollama, start it, and pull models
-	@source .venv/bin/activate && set -a && source .env && set +a && \
-	if command -v ollama >/dev/null 2>&1; then \
-	  echo "==> Ollama already installed, skipping..."; \
-	else \
-	  echo "==> Installing Ollama..." && \
-	  curl -fsSL https://ollama.com/install.sh | sh; \
-	fi && \
-	  echo "==> Starting Ollama service..." && \
-	  ollama serve &>/dev/null & \
-	  OLLAMA_PID=$$! && \
-	  echo "Waiting for Ollama to be ready (max 30s)..." && \
-	  OLLAMA_WAIT=0 && \
-	  until ollama list >/dev/null 2>&1; do \
-	    OLLAMA_WAIT=$$((OLLAMA_WAIT + 1)); \
-	    if [ $$OLLAMA_WAIT -ge 30 ]; then \
-	      echo "ERROR: Ollama failed to start within 30 seconds." && \
-	      kill $$OLLAMA_PID 2>/dev/null; \
-	      exit 1; \
-	    fi; \
-	    sleep 1; \
-	  done && \
-	  echo "==> Pulling $(MODEL)..." && \
-	  ollama pull $(MODEL) && \
-	  echo "" && \
-	  echo "Done. Run 'make ogx-server' to start the OGX server."
-
-ogx-server: ## Install OGX and start OGX server
-	@source .venv/bin/activate && set -a && source .env && set +a && \
-	  echo "==> Installing OGX..." && \
-	  uv pip install "ogx[starter]==1.1.0" "ogx-api==1.1.0" ollama "pymilvus==2.6.9" "milvus-lite>=2.5.1" "setuptools>=80.9.0,<82.0.0" && \
-	  mkdir -p milvus_data && \
-	  echo "==> Killing any existing process on port 8321..." && \
-	  lsof -ti:8321 | xargs kill -9 2>/dev/null; true && \
-	  echo "==> Starting OGX server on port 8321..." && \
-	  echo "NOTE: OGX requires a run_ogx_server.yaml config file. See agentic-starter-kits for setup."
 
 run-app: ## Run agent locally with hot-reload
 	@source .venv/bin/activate && set -a && source .env && set +a && \

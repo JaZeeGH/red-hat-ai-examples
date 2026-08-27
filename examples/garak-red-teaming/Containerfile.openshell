@@ -3,10 +3,7 @@
 # BYOC (Bring Your Own Container) image following the OpenShell pattern:
 # https://github.com/NVIDIA/OpenShell/tree/main/examples/bring-your-own-container
 #
-# Build (copy repo-level images/ and components/auth/ into context first):
-#   cp -r ../../../../images ./images
-#   mkdir -p ./components && cp -r ../../../../components/auth ./components/auth
-#   trap 'rm -rf ./images ./components' EXIT
+# Build:
 #   podman build --platform linux/amd64 -t langgraph-sandbox:latest -f Containerfile.openshell .
 #
 # Run (OpenShell replaces CMD -- pass the start command after --):
@@ -31,23 +28,14 @@ WORKDIR /sandbox
 
 USER 1001
 
-# Install the auth component first (resolves the path dependency issue),
-# then install the main package with tracing extra.
-COPY --chown=1001:0 components/auth/ ./components/auth/
-RUN uv pip install --python /opt/app-root/bin/python3 --no-cache ./components/auth/
-
 COPY --chown=1001:0 pyproject.toml .
 COPY --chown=1001:0 src/ ./src/
 
-# Remove the uv path source for agent-auth (already installed above from ./components/auth/)
-# so uv doesn't try to resolve the relative path ../../../../components/auth from /sandbox.
-RUN sed -i '/^\[tool\.uv\.sources\]/,/^\[/{/agent-auth/d}' pyproject.toml && \
-    uv pip install --python /opt/app-root/bin/python3 --no-cache ".[tracing]"
+RUN uv pip install --python /opt/app-root/bin/python3 --no-cache ".[tracing]"
 
 # Application code and assets
 COPY --chown=1001:0 main.py .
 COPY --chown=1001:0 playground/ ./playground/
-COPY --chown=1001:0 images/ ./images/
 
 ENV PORT=8080 \
     PYTHONPATH=/sandbox \

@@ -105,7 +105,7 @@ Edit `.env` with your model endpoint and container image:
 ```ini
 API_KEY=your-api-key-here
 BASE_URL=http://vllm.${NAMESPACE}.svc.cluster.local:8000/v1
-MODEL_ID=llama-3.1-8b-instruct
+MODEL_ID=qwen2-5-7b-instruct
 CONTAINER_IMAGE=quay.io/your-username/langgraph-react-agent:latest
 ```
 
@@ -137,6 +137,12 @@ printed by the command.
 ```bash
 make deploy
 ```
+
+> **Security note:** The default Helm values create an OpenShift Route
+> without authentication. Anyone with the Route URL can send requests to
+> the agent. This is acceptable for development and testing — for
+> production, restrict access via network policies or enable
+> authentication.
 
 ### Verify
 
@@ -423,9 +429,11 @@ curl -sk -H "Authorization: Bearer $TOKEN" \
 | Guardrailed | **0.0** | PASS |
 
 The guardrails completely mitigated the DAN jailbreak — from 100% attack
-success to 0%. The regex rail catches the "ignore previous instructions"
-pattern before it reaches the LLM, and the self-check input rail blocks
-toxic content.
+success to 0%. The **self-check input rail** classifies the DAN prompt as
+unsafe and blocks it before it reaches the LLM. The regex rail provides
+additional coverage for explicit jailbreak patterns (e.g., "ignore
+previous instructions") but is not what blocks the DAN 11.0 probe
+specifically.
 
 ### Switching to comprehensive scans
 
@@ -532,9 +540,9 @@ For mapping scan results to guardrails mitigations, see
 ├── docs/
 │   ├── scan-configuration.md          # Scan benchmarks, OWASP Top 10, custom parameters
 │   └── remediation-mapping.md         # Garak probe → NeMo rail mapping
-├── tests/                             # Unit, behavioral, and integration tests
-├── playground/                        # Web chat UI
-└── evalhub/                           # Evaluation benchmarks
+├── tests/                             # Unit tests (API contract, tools, auth middleware)
+└── playground/
+    └── templates/index.html           # Web chat UI (served by FastAPI at /)
 ```
 
 ## Troubleshooting
