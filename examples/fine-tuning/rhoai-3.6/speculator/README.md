@@ -75,7 +75,7 @@ The workbench only submits TrainJobs and monitors progress — no GPU is require
 > [!NOTE]
 >
 > - The workbench does not perform training or inference. All compute-intensive work happens in the TrainJob pods.
-> - **(Optional)** To run the **"Test the Trained Draft Model"** section in the notebooks, attach a GPU to the workbench and assign at least **8 GiB of RAM**. This section converts the trained Eagle3 checkpoint and runs speculative decoding inference directly in the workbench using vLLM. It is not required for training — only for local validation of the draft model.
+> - **(Optional)** To run the **"Test the Trained Draft Model"** section in the notebooks, attach a GPU to the workbench and assign at least **8 GiB of RAM**. This section loads the trained Eagle3 checkpoint and runs speculative decoding inference directly in the workbench using vLLM. It is not required for training — only for local validation of the draft model.
 
 ### Training Pod Requirements
 

@@ -49,7 +49,7 @@ The table below shows the **minimum** resources needed with Qwen3-0.6B. The note
 
 - 1 GPU works but is slower — 2 GPUs enable data-parallel training
 - No vLLM sidecar or external server is needed — TRAIN_ONLY reads directly from the PVC
-- **(Optional)** To run the **"Test the Trained Draft Model"** section in the notebook, attach a GPU to the workbench and assign at least **8 GiB of RAM**. This converts the trained checkpoint and runs speculative decoding inference locally using vLLM. It is not required for training — only for local validation of the draft model.
+- **(Optional)** To run the **"Test the Trained Draft Model"** section in the notebook, attach a GPU to the workbench and assign at least **8 GiB of RAM**. This loads the trained checkpoint and runs speculative decoding inference locally using vLLM. It is not required for training — only for local validation of the draft model.
 
 ## Setup
 
