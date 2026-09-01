@@ -95,7 +95,7 @@ NAMESPACE=$(oc project -q)
 EVALHUB_ROUTE=$(oc get route evalhub -n ${NAMESPACE} -o jsonpath='{.spec.host}')
 AGENT_SVC="http://langgraph-react-agent.${NAMESPACE}.svc.cluster.local:8080"
 
-curl -sk -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
@@ -122,7 +122,7 @@ curl -sk -X POST \
 ### Multiple benchmarks in one job
 
 ```bash
-curl -sk -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
@@ -147,7 +147,7 @@ results are stored in EvalHub only and **will not appear** in the RHOAI
 Experiments dashboard.
 
 ```bash
-curl -sk -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
@@ -271,7 +271,7 @@ Precedence (highest to lowest):
 
 ```bash
 TOKEN=$(oc whoami -t)
-curl -sk -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/${JOB_ID}" \
   | python3 -m json.tool
@@ -281,7 +281,7 @@ curl -sk -H "Authorization: Bearer $TOKEN" \
 
 ```bash
 TOKEN=$(oc whoami -t)
-curl -sk -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs" \
   | python3 -m json.tool
@@ -382,7 +382,7 @@ for both scans and differentiate them with tags:
 **Baseline scan (no guardrails):**
 
 ```bash
-curl -sk -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
@@ -410,7 +410,7 @@ curl -sk -X POST \
 **Guardrailed scan (after applying NeMo Guardrails):**
 
 ```bash
-curl -sk -X POST \
+curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \

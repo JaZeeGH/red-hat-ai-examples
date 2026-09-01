@@ -91,6 +91,9 @@ echo "EvalHub:    ${EVALHUB_ROUTE}"
 
 > **Tip:** If your shell session expires, re-run this block to refresh
 > `TOKEN`. The other values are stable.
+>
+> **TLS:** If EvalHub uses a private CA, export the CA bundle so `curl`
+> verifies the certificate: `export CURL_CA_BUNDLE=/path/to/ca-bundle.crt`
 
 ---
 
@@ -189,7 +192,7 @@ oc exec $EVALHUB_POD -n ${NAMESPACE} -c evalhub -- \
 ### Submit the scan
 
 ```bash
-SCAN_RESPONSE=$(curl -sk -X POST \
+SCAN_RESPONSE=$(curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
@@ -243,7 +246,7 @@ The `quick` scan completes in under 2 minutes. Poll until `state` shows
 `completed`:
 
 ```bash
-curl -sk -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/${JOB_ID}" \
   | python3 -m json.tool
@@ -375,7 +378,7 @@ Submit the same scan, now with guardrails in place. Use the same
 `guardrails` tag distinguishes them:
 
 ```bash
-SCAN_RESPONSE=$(curl -sk -X POST \
+SCAN_RESPONSE=$(curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   -H "Content-Type: application/json" \
@@ -415,7 +418,7 @@ echo "JOB_ID=${JOB_ID}"
 ### Poll the guardrailed scan results
 
 ```bash
-curl -sk -H "Authorization: Bearer $TOKEN" \
+curl -s -H "Authorization: Bearer $TOKEN" \
   -H "X-Tenant: ${NAMESPACE}" \
   "https://${EVALHUB_ROUTE}/api/v1/evaluations/jobs/${JOB_ID}" \
   | python3 -m json.tool
