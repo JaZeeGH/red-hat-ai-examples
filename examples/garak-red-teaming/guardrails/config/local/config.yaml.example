@@ -1,0 +1,42 @@
+# NeMo Guardrails configuration — local self-check profile.
+# Uses NeMo Guardrails' built-in self-check rails: the same model answering
+# the user's question also classifies input/output against a plain-text
+# policy prompt (see prompts.yml). No dedicated safety models required.
+#
+# `guardrails/generate_config.py` generates config.yaml from this template,
+# injecting LLM_BASE_URL, MODEL_ID, and API_KEY from .env.
+models:
+  - type: main
+    engine: openai
+    model: llama3.1:8b
+    parameters:
+      base_url: http://localhost:11434/v1
+      api_key: not-needed
+
+passthrough: true
+
+rails:
+  config:
+    regex_detection:
+      input:
+        patterns:
+          - "\\b(hack|exploit|bypass|inject)\\s+(the|this|my)\\s+(system|filter|guardrail)"
+          - "ignore\\s+(all\\s+)?(previous|above)\\s+(instructions|rules|prompts)"
+          - "\\bDAN\\b.*\\bjailbreak\\b"
+        case_insensitive: true
+  input:
+    flows:
+      - regex check input
+      - self check input
+  output:
+    flows:
+      - self check output
+    streaming:
+      enabled: True
+
+tracing:
+  enabled: false
+  span_format: opentelemetry
+  enable_content_capture: false
+  adapters:
+    - name: OpenTelemetry

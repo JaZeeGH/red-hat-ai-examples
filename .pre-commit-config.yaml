@@ -67,6 +67,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
         args: [--allow-multiple-documents]
+        exclude: ^examples/.*/deployment/templates/
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-merge-conflict

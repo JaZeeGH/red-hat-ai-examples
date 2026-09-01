@@ -4,6 +4,12 @@ version: "1.0"
 threshold: medium
 fileignoreconfig:
 - filename: .secrets.baseline
-  checksum: 6a4f12f836549670755bfab7304bf3394b079783c5da2f7ca9fd8ab524fef7e8
+  checksum: 54a04958d31c3e857efb20ec1797bfb475eebfcfcaf81e1c557de1ade23c02c3
 - filename: examples/ray/rag/build_rag_pipeline/rag_setup.py
   checksum: 1f38532e2f07f471b7bd9286f7533bd79f8de35cf2017611aad2887080f20481
+- filename: examples/garak-red-teaming/Dockerfile
+  checksum: cd18feea4649f836a8fe67552cad0819ae3ee73744d80b90f81eda092e4e6e9c
+- filename: examples/garak-red-teaming/Containerfile.openshell
+  checksum: 0e95a88a8d7ef4bfed5efa44b9fdcec137f8df0d4a8affd2f26524a5ea001338
+- filename: examples/garak-red-teaming/agent.yaml
+  checksum: 5f6e3dcdc111a5d29c85505c4feda123a19cc720e3cbc1a25f58c581c819d5c4
