@@ -141,8 +141,8 @@ make deploy
 > **Security note:** The default Helm values create an OpenShift Route
 > without authentication. Anyone with the Route URL can send requests to
 > the agent. This is acceptable for development and testing — for
-> production, restrict access via network policies or enable
-> authentication.
+> production, restrict access via network policies or disable the Route
+> (`ingress.enabled: false` in `values.yaml`).
 
 ### Verify
 

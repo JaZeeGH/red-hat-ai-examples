@@ -5,7 +5,7 @@ CHART_DIR      := deployment
 VALUES_FILE    := values.yaml
 CONTAINER_CLI  := $(shell command -v podman 2>/dev/null || command -v docker 2>/dev/null)
 
-.PHONY: init re-init run-app run-app-fresh run-cli build push build-openshift deploy undeploy deploy-guardrails undeploy-guardrails deploy-all undeploy-all test test-integration test-auth-integration dry-run help
+.PHONY: init re-init run-app run-app-fresh run-cli build push build-openshift deploy undeploy deploy-guardrails undeploy-guardrails deploy-all undeploy-all test dry-run help
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -189,14 +189,4 @@ deploy-all: deploy-guardrails deploy ## Deploy guardrails and agent together
 undeploy-all: undeploy undeploy-guardrails ## Remove agent and guardrails
 
 test: ## Run unit tests
-	uv run --extra dev python -m pytest tests/ --ignore=tests/integration --ignore=tests/behavioral $(PYTEST_ARGS)
-
-test-integration: ## Run integration deployment test
-	PYTHONPATH=$$(git rev-parse --show-toplevel)/tests \
-	  uv run --extra dev python -m pytest tests/integration/test_deployment.py \
-	    -v --tb=long --junitxml=results.xml
-
-test-auth-integration: ## Run auth-enabled integration deployment test
-	PYTHONPATH=$$(git rev-parse --show-toplevel)/tests \
-	  uv run --extra dev python -m pytest tests/integration/test_auth.py \
-	    -v --tb=long --junitxml=results-auth.xml
+	uv run --extra dev python -m pytest tests/ $(PYTEST_ARGS)
